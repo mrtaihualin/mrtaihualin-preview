@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<!-- Phase 1 privacy gate: Clarity is not requested until stored consent is granted. -->
+<script src="js/core/clarity-consent-gate.js?v=1" data-clarity-id="xkbihw56tf"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>我的內容 · mrtaihualin.com</title>
+<meta name="description" content="查看登入帳號儲存的泰語單字與句子，並直接回到遊戲練習。">
+<meta name="robots" content="noindex,follow">
+<link rel="canonical" href="https://mrtaihualin.com/vault.html">
+<meta property="og:title" content="我的內容 — 泰華眼裡的泰語教學">
+<meta property="og:description" content="查看登入帳號儲存的泰語單字與句子，並直接回到遊戲練習。">
+<meta property="og:image" content="https://mrtaihualin.com/assets/share-card.png">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:url" content="https://mrtaihualin.com/vault.html">
+<meta property="og:site_name" content="泰華眼裡的泰語教學">
+<link rel="icon" href="/mrtaihualin-preview/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/mrtaihualin-preview/assets/favicon-32.png">
+<link rel="apple-touch-icon" href="/mrtaihualin-preview/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="css/shared.css?v=18">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- Lin 2026-07-26: เปิดสายไปที่เซิร์ฟเวอร์ฟอนต์ล่วงหน้า ลดเวลารอบนมือถือ -->
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+<!-- Lin 2026-08-02: เพิ่มแถบสถานะผู้ใช้ (badge ล็อกอิน) ให้เหมือนหน้าเกมอื่น — ใช้ระบบกลางเดียวกันทุกอย่าง ไม่เขียนใหม่ -->
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer src="js/core/supabase-config.staging.js?v=9"></script>
+<script defer src="js/core/supabase-fetch-cache.js?v=1"></script><!-- dedupe fetch 2026-07-20: ต้องโหลดก่อน auth-widget.js/shared.js -->
+<script defer src="js/core/auth-widget.js?v=15"></script>
+<script defer src="js/core/network-guard.js?v=1"></script>
+<script defer src="js/score/phase1-canonical-state.js?v=2"></script>
+<script defer src="js/games/reading-auth.js?v=27"></script>
+<script src="js/games/word-vault.js?v=7"></script>
+<script src="js/games/sentence-vault.js?v=3"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sarabun',sans-serif;background:#fdf8ef;min-height:100vh;padding-bottom:80px;}
+.vault-page{max-width:680px;margin:0 auto;padding:16px;}
+
+/* header — page-header/page-title ก็อปสไตล์เดียวกับหน้าเกมอื่นทุกหน้า (reading-game.html เป็นต้น) — Lin 2026-08-02 */
+.page-header{text-align:center;margin-bottom:10px;}
+.page-title{font-family:'Noto Serif TC',serif;font-size:clamp(20px,4vw,28px);font-weight:900;color:#8B6310;letter-spacing:2px;}
+/* ไม่มี JS เติมข้อความให้เลย (เช็คแล้ว) ปล่อย display:none ไว้เหมือนเดิม กันเห็นเป็นเม็ดยาว่างๆ */
+.vault-count-chip{font-size:13px;background:rgba(139,99,16,0.12);color:#8B6310;border-radius:20px;padding:3px 12px;display:none;}
+.vault-back{font-size:13px;color:#8B6310;text-decoration:none;display:inline-flex;align-items:center;gap:4px;margin-bottom:12px;}
+.vault-back:hover{text-decoration:underline;}
+
+/* filter bar */
+.vault-filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+.vtag-btn{font-size:12px;font-family:'Sarabun',sans-serif;padding:5px 14px;border-radius:20px;border:1.5px solid rgba(139,99,16,0.3);background:#fff;color:#5a3e0a;cursor:pointer;transition:all .15s;}
+.vtag-btn.active,.vtag-btn:hover{background:#8B6310;color:#fff;border-color:#8B6310;}
+.vtag-count{font-size:11px;opacity:0.75;}
+
+/* word cards */
+.vault-list{display:flex;flex-direction:column;gap:10px;}
+.vault-card{background:#fff;border:1.5px solid var(--gold-bright,#C8973A);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(90,62,10,0.06);}
+.vault-card-word{font-size:32px;font-weight:700;color:#3a2a0a;min-width:56px;text-align:center;line-height:1.3;}
+.vault-card-info{flex:1;}
+.vault-card-zh{font-size:13px;color:#888;font-family:'Noto Sans TC',sans-serif;}
+.vault-card-en{font-size:12px;color:#aaa;margin-top:2px;}
+.vault-card-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;justify-content:flex-end;}
+.vault-tag-chip{font-size:11px;padding:2px 10px;border-radius:12px;cursor:pointer;border:1.5px solid;background:var(--cream-soft,#FBF5E7);transition:all .15s;}
+.vault-tag-chip.active{color:#fff;}
+.vault-tag-chip[data-tag="อยากฝึก"]{border-color:#C8973A;color:#C8973A;}
+.vault-tag-chip[data-tag="อยากฝึก"].active{background:#C8973A;}
+.vault-tag-chip[data-tag="เป็นแล้ว"]{border-color:#5a3e0a;color:#5a3e0a;}
+.vault-tag-chip[data-tag="เป็นแล้ว"].active{background:#5a3e0a;}
+.vault-tag-chip[data-tag="ชอบ"]{border-color:#A8780F;color:#A8780F;}
+.vault-tag-chip[data-tag="ชอบ"].active{background:#A8780F;}
+.vault-card-delete{font-size:18px;cursor:pointer;color:#ccc;padding:4px;border:none;background:none;border-radius:6px;transition:color .15s;}
+.vault-card-delete:hover{color:#e05050;}
+.vault-card-source{font-size:10px;color:#bbb;margin-top:3px;}
+.vault-practice-btns{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;justify-content:flex-end;}
+.vault-practice-btn{font-size:11px;font-family:'Sarabun',sans-serif;padding:4px 10px;border-radius:14px;
+  background:#fff;border:1.5px solid rgba(139,99,16,0.30);color:#7a5510;text-decoration:none;
+  cursor:pointer;transition:all .15s;white-space:nowrap;}
+.vault-practice-btn:hover{background:rgba(139,99,16,0.10);border-color:rgba(139,99,16,0.55);}
+
+/* empty */
+.vault-empty{text-align:center;padding:60px 20px;color:#aaa;}
+.vault-empty-icon{font-size:48px;margin-bottom:12px;}
+.vault-empty-text{font-size:15px;line-height:1.7;}
+.vault-empty a{color:#8B6310;text-decoration:underline;}
+
+/* bottom nav */
+#game-switcher{position:fixed;bottom:64px;left:50%;right:auto;transform:translateX(-50%);display:flex;gap:0;background:rgba(255,255,255,0.97);border:1.5px solid #d4b87a;border-radius:999px;box-shadow:0 4px 20px rgba(90,62,10,0.18);z-index:999;max-width:94vw;overflow-x:auto;-webkit-overflow-scrolling:touch;font-family:'Noto Sans TC',sans-serif;backdrop-filter:blur(8px);}
+.gs-tab{display:flex;align-items:center;padding:10px 16px;font-size:13px;color:#8B6310;text-decoration:none;white-space:nowrap;transition:background .15s;flex-shrink:0;}
+.gs-tab:hover,.gs-tab.gs-active{background:rgba(139,99,16,0.1);}
+.gs-divider{width:1px;background:#d4b87a;margin:8px 0;flex-shrink:0;}
+@media(max-width:768px){#game-switcher{bottom:calc(120px + env(safe-area-inset-bottom,0px));}.gs-tab{padding:9px 12px;font-size:12px;}}
+
+/* Phase 1 我的內容 — one page / two tabs / Login-only Personal Search */
+.pc-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0;}
+.pc-tab{border:1.5px solid rgba(139,99,16,.28);background:#fff;color:#765113;border-radius:12px;padding:11px;font:700 14px 'Noto Sans TC',sans-serif;cursor:pointer;}
+.pc-tab.active{background:#8B6310;color:#fff;border-color:#8B6310;}
+.pc-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;margin:0 0 12px;}.pc-search-label{display:grid;gap:6px;color:#765113;font:700 13px 'Noto Sans TC',sans-serif;}.pc-search-input{width:100%;min-height:44px;border:1.5px solid rgba(139,99,16,.35);border-radius:12px;background:#fff;padding:9px 12px;color:#3a2a0a;font:16px 'Noto Sans TC',sans-serif;}.pc-search-input:focus{outline:3px solid rgba(200,151,58,.22);border-color:#8B6310;}.pc-search-clear{min-height:44px;border:1.5px solid rgba(139,99,16,.35);border-radius:12px;background:#fff;color:#765113;padding:8px 13px;font:700 13px 'Noto Sans TC',sans-serif;cursor:pointer;}.pc-search-status{grid-column:1/-1;margin:0;color:#83775f;font-size:12px;}
+.pc-list{display:flex;flex-direction:column;gap:10px;}
+.pc-limit{align-self:flex-end;color:#8b7340;font-size:12px;text-align:right;}
+.pc-limit-near{background:#fff8e8;border:1px solid #e7c46e;border-radius:10px;padding:8px 11px;}
+.pc-limit-full{background:#fff3e9;border:1px solid #d98763;border-radius:12px;padding:12px;text-align:left;line-height:1.6;}
+.pc-limit-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.pc-item{background:#fff;border:1px solid rgba(200,151,58,.35);border-radius:14px;padding:13px 14px;box-shadow:0 2px 8px rgba(80,55,12,.05);}
+.pc-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;}.pc-th{font:700 clamp(22px,5vw,30px) Sarabun,sans-serif;color:#3a2a0a;}
+.pc-detail-toggle,.pc-info-toggle,.pc-secondary,.pc-delete{font-family:'Noto Sans TC',sans-serif;border-radius:999px;padding:6px 12px;cursor:pointer;}
+.pc-detail-toggle,.pc-info-toggle,.pc-secondary{background:#fff;border:1px solid rgba(139,99,16,.35);color:#765113;}.pc-disabled{opacity:.55;cursor:not-allowed;}
+.pc-details{border-top:1px solid #eee4cf;margin-top:11px;padding-top:11px;}.pc-info-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:6px 0;}.pc-info-value{font-size:13px;color:#5f533d;}
+.pc-detail-section{margin-top:14px}.pc-detail-section h4{font:800 13px 'Noto Sans TC',sans-serif;color:#765113;margin:0 0 7px;}.pc-practice{display:inline-flex;margin:3px 5px 3px 0;padding:7px 11px;border-radius:999px;background:#fbf5e7;color:#765113;text-decoration:none;font-size:12px;font-weight:700;}
+.pc-source,.pc-muted{margin:4px 0;color:#83775f;font-size:12px;line-height:1.5;}.pc-delete{margin-top:13px;background:#fff;border:1px solid #c96a63;color:#a53e37;}.pc-empty,.pc-guest{text-align:center;background:#fff;border-radius:16px;padding:35px 22px;color:#83775f;line-height:1.7;}.pc-guest h2{color:#5c4410;margin:8px 0}.pc-guest p{font-size:14px}.pc-guest-icon{font-size:40px}.pc-primary{display:inline-flex;margin-top:15px;background:#8B6310;color:#fff;border-radius:999px;padding:10px 18px;text-decoration:none;font-weight:800;}
+@media(max-width:420px){.pc-search{grid-template-columns:1fr}.pc-search-clear{width:100%}}
+</style>
+</head>
+<body>
+<!--ANN-BAND:START--><script>try{if(sessionStorage.getItem('annDismissed')==='1')document.documentElement.classList.add('ann-off');}catch(e){}</script><div class="avail-band" id="ann-band" style="position:relative"><div class="avail-row"><span class="avail-dot"></span><span class="avail-text">🎁 首堂 30 分鐘體驗課免費・中文授課</span><button class="avail-cta" onclick="openModal('modal-line-qr')">立即預約</button></div><div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-top:4px;"><button onclick="annPrev()" aria-label="上一則公告" style="background:none;border:none;color:var(--gold-deep);font-size:15px;line-height:1;cursor:pointer;padding:2px 4px;min-width:32px;min-height:32px;display:inline-flex;align-items:center;justify-content:center;">‹</button><div style="display:flex;align-items:center;gap:6px;"><span onclick="annGoTo(0)" style="width:7px;height:7px;border-radius:50%;cursor:pointer;background:var(--gold);transition:background 0.2s;"></span><span onclick="annGoTo(1)" style="width:7px;height:7px;border-radius:50%;cursor:pointer;background:rgba(139,99,16,0.30);transition:background 0.2s;"></span><span onclick="annGoTo(2)" style="width:7px;height:7px;border-radius:50%;cursor:pointer;background:rgba(139,99,16,0.30);transition:background 0.2s;"></span><span onclick="annGoTo(3)" style="width:7px;height:7px;border-radius:50%;cursor:pointer;background:rgba(139,99,16,0.30);transition:background 0.2s;"></span><span onclick="annGoTo(4)" style="width:7px;height:7px;border-radius:50%;cursor:pointer;background:rgba(139,99,16,0.30);transition:background 0.2s;"></span></div><button onclick="annNext()" aria-label="下一則公告" style="background:none;border:none;color:var(--gold-deep);font-size:15px;line-height:1;cursor:pointer;padding:2px 4px;min-width:32px;min-height:32px;display:inline-flex;align-items:center;justify-content:center;">›</button></div><button onclick="annDismiss()" aria-label="關閉公告" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--gold-deep);font-size:17px;line-height:1;cursor:pointer;padding:4px;min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;">✕</button></div><!--ANN-BAND:END-->
+
+<!-- Lin 2026-08-02: เพิ่ม nav บนสุด + page-strip ล่างสุด ให้เหมือนหน้าเกมอื่นทุกหน้า (ก็อปจาก reading-game.html เป๊ะ) -->
+<nav class="site-nav"><div class="nav-logo" onclick="goHome()"><span class="logo-accent">泰華</span><span class="logo-dim">眼裡的</span><span class="logo-main">泰語教學</span></div><ul class="nav-links"><li><a href="/mrtaihualin-preview/games.html" class="nav-cta-secondary">🎮 遊戲</a></li><li><a href="javascript:void(0)" class="has-drop">學習資源</a><div class="nav-drop"><span class="nav-drop-label">泰語學習資源</span><a href="/mrtaihualin-preview/content.html">📚 泰語學習資源</a><a href="/mrtaihualin-preview/blog.html#articles">📝 泰語學習文章</a><a href="/mrtaihualin-preview/resources.html#video-learning">🎬 影音學習</a><a href="/mrtaihualin-preview/blog.html#selfstudy">📖 自學資源</a><span class="nav-drop-label">其他學習入口</span><a href="javascript:void(0)" onclick="openModal('modal-quiz')">程度測驗</a><a href="/mrtaihualin-preview/index.html#problems">學習困境</a><a href="/mrtaihualin-preview/community.html">🇹🇭 泰語學習心聲與提問</a></div></li><li><a href="javascript:void(0)" class="has-drop">更多</a><div class="nav-drop"><span class="nav-drop-label">課程與老師</span><a href="/mrtaihualin-preview/index.html#teacher">關於老師</a><a href="/mrtaihualin-preview/pricing.html#testimonials">學生回饋</a><a href="/mrtaihualin-preview/pricing.html#pricing">費用方案</a><a href="/mrtaihualin-preview/pricing.html#how">上課方式</a><span class="nav-drop-label">常見資訊</span><a href="/mrtaihualin-preview/faq.html#faq">FAQ</a><a href="/mrtaihualin-preview/faq.html#rules">上課須知</a><a href="/mrtaihualin-preview/faq.html#feedback-section">分享經驗</a><span class="nav-drop-label">其他服務</span><a href="/mrtaihualin-preview/page-services.html#tour-guide">🗺️ 導遊</a><a href="/mrtaihualin-preview/page-services.html#drama">🎬 字幕翻譯</a><a href="/mrtaihualin-preview/page-services.html#interpret">🎙️ 口譯</a><a href="/mrtaihualin-preview/page-services.html#quote-form">📋 報價</a><div class="nav-drop-divider"></div><a href="javascript:void(0)" onclick="openModal('modal-contact')">聯絡我們</a></div></li><li><a href="javascript:void(0)" onclick="openModal('modal-line-qr')" class="nav-cta">免費試聽</a></li></ul><button class="nav-mobile-cta" onclick="openModal('modal-line-qr')">免費試聽</button><div class="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></div></nav><!--NAV-FIT:START--><script>(function(){try{function f(){var n=document.querySelector("nav.site-nav");if(!n)return;var l=n.querySelector(".nav-logo"),k=n.querySelector(".nav-links");if(!l||!k)return;n.classList.remove("nav-compact");k.style.cssText="";var cs=window.getComputedStyle(n);var pl=parseFloat(cs.paddingLeft)||0,pr=parseFloat(cs.paddingRight)||0;var avail=n.clientWidth-pl-pr;var need=l.scrollWidth+k.scrollWidth+12;if(need>avail){n.classList.add("nav-compact");}}window.__navFit=f;f();}catch(e){}})();</script><!--NAV-FIT:END-->
+
+<div class="page-strip">
+  <span class="page-strip-label">頁面</span>
+  <a href="index.html">老師・介紹</a>
+  <a href="pricing.html">課程・費用</a>
+  <a href="faq.html">須知・分享</a>
+  <a href="page-services.html">導遊・翻譯</a>
+  <a href="content.html">泰語・分享</a>
+  <a href="games.html">泰語・遊戲</a>
+</div>
+
+<div class="vault-page">
+
+  <div id="rg-login-slot" style="display:flex;align-items:center;margin-bottom:12px;"></div>
+
+  <!-- ปุ่มกลับ: ถ้ามีประวัติให้ back ปกติ · เปิดหน้านี้ตรงๆ (ไม่มีประวัติ) → ไป games.html กันติดตัน — LIN 2026-07-02 -->
+  <a class="vault-back" href="games.html" onclick="if(document.referrer&&history.length>1){history.back();return false;}">← 返回</a>
+
+  <div class="page-header">
+    <h1 class="page-title" style="margin:0;">學習中心 · 我的內容</h1>
+    <span class="vault-count-chip" id="vault-total-count"></span>
+  </div>
+  <div id="personal-content-root"></div>
+
+</div>
+
+<div id="game-switcher" data-current="vault" data-track="0"></div>
+
+<footer>
+  專門教台灣人學泰文 · 專為台灣人設計的泰文課<span class="foot-sep"> · </span><br class="foot-mbr">泰華眼裡的泰語教學 · 累積超過 8,000 小時教學<br>
+  <span class="footer-legal"><a href="/mrtaihualin-preview/terms.html" style="color:inherit;text-decoration:underline;">使用條款與著作權聲明</a><span aria-hidden="true"> · </span><a href="/mrtaihualin-preview/privacy.html" style="color:inherit;text-decoration:underline;">隱私權政策</a></span><br>
+  <span class="footer-copyright">© 2026 mrtaihualin.com</span>
+</footer>
+<script src="js/games/game-switcher.js?v=1"></script>
+
+<script src="data/nav-template.js?v=4"></script>
+<script src="js/core/shared.min.js?v=40"></script>
+<script type="text/plain" data-superseded="phase1-personal-content">
+var TAGS = ['อยากฝึก','เป็นแล้ว','ชอบ'];
+var TAG_COLORS = {'อยากฝึก':'#C8973A','เป็นแล้ว':'#5a3e0a','ชอบ':'#A8780F'};
+// ป้ายที่โชว์ให้ผู้ใช้เห็นเป็นจีน — คีย์เก็บข้อมูลจริงยังเป็นไทยเหมือนเดิม กันข้อมูลเก่าที่เซฟไว้ในเครื่อง user พัง — Lin 2026-07-02
+var TAG_LABELS_ZH = {'อยากฝึก':'🟠 想練習','เป็นแล้ว':'✅ 已學會','ชอบ':'❤️ 喜歡'};
+var currentFilter = 'all';
+
+// หมายเหตุ: ตอนนี้การ์ดคำไม่ได้โชว์ "ที่มา" แล้ว (แทนที่ด้วยปุ่มฝึก) — เก็บ mapping นี้ไว้เผื่ออนาคต
+function sourceLabel(s){
+  if(s==='tone-finder') return '🎵 聲調練習室';
+  if(s==='reading-game') return '✍️ 拼讀練習室';
+  if(s==='typing-game') return '⌨️ 打字練習室';
+  return s || '';
+}
+// ปุ่มเลือกว่าจะเอาคำนี้ไปฝึกในเกมไหน (แทนที่ป้าย "ที่มา" เดิม) — Lin 2026-07-02
+function practiceBtnsHtml(th){
+  var q='?word='+encodeURIComponent(th);
+  return '<div class="vault-practice-btns">'+
+    '<a class="vault-practice-btn" href="reading-game.html'+q+'">✍️ 拼讀練習室</a>'+
+    /* Lin 2026-07-25: ถอดปุ่ม 🎵 聲調練習室 ออก — เกมเสียงปิดโหมด 自行搜尋 แล้ว ลิงก์ ?word= ใช้ไม่ได้ (กันปุ่มพัง) */
+    '<a class="vault-practice-btn" href="typing-game.html'+q+'">⌨️ 打字練習室</a>'+
+    /* Lin 2026-07-25: ถอดปุ่ม 🧩 造句練習室 ออก — เกมเลโก้ไม่มีตัวรับลิงก์ ?word= กดแล้วได้ประโยคสุ่ม ไม่ใช่คำที่กด (กันปุ่มพัง เหมือนที่ถอด 聲調練習室) */
+  '</div>';
+}
+
+function updateTabCounts(words){
+  var elAll = document.getElementById('vtag-count-all');
+  if(elAll) elAll.textContent = '(' + words.length + ')';
+  TAGS.forEach(function(tag){
+    var el = document.getElementById('vtag-count-'+tag);
+    if(!el) return;
+    var n = words.filter(function(w){ return w.tags && w.tags.indexOf(tag) !== -1; }).length;
+    el.textContent = '(' + n + ')';
+  });
+}
+
+function renderList(){
+  var words = WordVault.getAll();
+  // sort: newest first
+  words = words.slice().sort(function(a,b){ return (b.saved_at||0)-(a.saved_at||0); });
+
+  var filtered = currentFilter === 'all' ? words
+    : words.filter(function(w){ return w.tags && w.tags.indexOf(currentFilter) !== -1; });
+
+  updateTabCounts(words);
+
+  // soft-CTA: โชว์ต่อเมื่อเก็บคำไว้ครบ 5 คำขึ้นไป (นับจากทั้งหมด ไม่ใช่แค่ตัวกรองที่เลือกอยู่)
+  if(words.length >= 5 && window.renderSoftCTA){
+    renderSoftCTA('soft-cta-vault','vault_list','收藏不少單字了！想知道怎麼真正用在對話裡嗎？');
+  }
+
+  var list = document.getElementById('vault-list');
+  if(!filtered.length){
+    list.innerHTML = '<div class="vault-empty">' +
+      '<div class="vault-empty-icon">🔖</div>' +
+      '<div class="vault-empty-text">' +
+        (currentFilter==='all'
+          ? '單字庫還沒有字<br>去玩 <a href="tone-finder.html">聲調練習室</a>、<a href="reading-game.html">拼讀練習室</a> 或 <a href="typing-game.html">打字練習室</a>，按 🔖 就能儲存了'
+          : '這個分類還沒有字') +
+      '</div></div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  filtered.forEach(function(w){
+    var card = document.createElement('div');
+    card.className = 'vault-card';
+
+    // tag chips
+    var tagHtml = '<div class="vault-card-tags">';
+    TAGS.forEach(function(tag){
+      var on = w.tags && w.tags.indexOf(tag) !== -1;
+      tagHtml += '<button class="vault-tag-chip'+(on?' active':'')+'" data-tag="'+tag+'" '+
+        'style="'+(on?'background:'+TAG_COLORS[tag]+';color:#fff;border-color:'+TAG_COLORS[tag]+';':'')+'" '+
+        'onclick="toggleTag(\''+w.th+'\',\''+tag+'\',this)">'+(TAG_LABELS_ZH[tag]||tag)+'</button>';
+    });
+    tagHtml += '</div>';
+
+    card.innerHTML =
+      '<div class="vault-card-word">'+w.th+'</div>'+
+      '<div class="vault-card-info">'+
+        '<div class="vault-card-zh">'+(w.zh||'')+'</div>'+
+        '<div class="vault-card-en">'+(w.en||'')+'</div>'+
+        practiceBtnsHtml(w.th)+
+        tagHtml+
+      '</div>'+
+      '<button class="vault-card-delete" title="從單字庫移除" onclick="deleteWord(\''+w.th+'\')">✕</button>';
+
+    list.appendChild(card);
+  });
+}
+
+function toggleTag(th, tag, btn){
+  var on = btn.classList.contains('active');
+  WordVault.setTag(th, tag, !on);
+  renderList();
+}
+
+function deleteWord(th){
+  WordVault.removeWord(th);
+  renderList();
+}
+
+function setFilter(f, btn){
+  currentFilter = f;
+  document.querySelectorAll('.vtag-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  renderList();
+}
+
+WordVault.injectStyles();
+renderList();
+
+// 🆕 2026-08-11: คลังคำ sync ข้ามเครื่องแล้ว — การรวมคำเป็นงาน async (รอเซิร์ฟเวอร์ตอบ)
+// ถ้าไม่ render ใหม่ หน้านี้จะโชว์แต่คำของเครื่องนี้ค้างไว้ ทั้งที่ดึงคำจากเครื่องอื่นมาแล้ว
+// (word-vault.js ยิง event นี้ให้หลังรวมคำเสร็จทุกครั้ง)
+window.addEventListener('wordvault:changed', renderList);
+</script>
+<script src="js/games/practice-events.js?v=2"></script>
+<script src="js/score/personal-search.js?v=1"></script>
+<script src="js/score/personal-content.js?v=4"></script>
+
+<div id="cookieConsentBanner" role="dialog" aria-label="Cookie 與分析設定" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:9999;
+  background:#FAF4E8;border-top:2px solid #8B6310;box-shadow:0 -4px 16px rgba(0,0,0,0.12);
+  padding:18px 20px;font-family:'Noto Sans TC',sans-serif;">
+  <div style="max-width:960px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:14px;justify-content:space-between;">
+    <p style="margin:0;color:#1C1C1C;font-size:14px;line-height:1.6;flex:1;min-width:240px;">
+      🍪 我們只會在您同意後載入 <strong>Microsoft Clarity</strong>，用來改善網站體驗。詳見
+      <a href="/mrtaihualin-preview/privacy.html" style="color:#8B6310;font-weight:700;text-decoration:underline;">隱私權政策</a>。
+    </p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button type="button" onclick="window.__cookieConsentDecide(false)" style="background:#FAF4E8;color:#8B6310;border:1.5px solid #8B6310;border-radius:8px;padding:9px 18px;font-weight:700;font-size:14px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;">拒絕</button>
+      <button type="button" onclick="window.__cookieConsentDecide(true)" style="background:linear-gradient(135deg,#C8973A,#8B6310);color:#FAF4E8;border:none;border-radius:8px;padding:9px 22px;font-weight:700;font-size:14px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;">接受</button>
+    </div>
+  </div>
+</div>
+<script>
+window.__cookieConsentDecide = function (granted) {
+  if (window.AnalyticsConsent) window.AnalyticsConsent.decide(!!granted);
+  var banner = document.getElementById('cookieConsentBanner');
+  if (banner) banner.style.display = 'none';
+};
+window.__reopenCookieConsent = function () {
+  var banner = document.getElementById('cookieConsentBanner');
+  if (banner) banner.style.display = 'block';
+};
+if (!window.AnalyticsConsent || window.AnalyticsConsent.state() === 'unset') {
+  var initialBanner = document.getElementById('cookieConsentBanner');
+  if (initialBanner) initialBanner.style.display = 'block';
+}
+</script>
+<nav id="bottom-nav"><a href="/mrtaihualin-preview/index.html" class="bn-item"><span class="bn-icon">🏠</span><span class="bn-label">首頁</span></a><a href="javascript:void(0)" onclick="openModal('modal-line-qr')" class="bn-item bn-cta"><span class="bn-icon">📞</span><span class="bn-label">試聽</span></a><a href="/mrtaihualin-preview/games.html" class="bn-item"><span class="bn-icon">🎮</span><span class="bn-label">遊戲</span></a></nav>
+</body>
+</html>

@@ -1,0 +1,843 @@
+// ============================================================
+// reading-auth.js — ล็อกอิน + ส่งหลักฐานคะแนน Core 5 ไปให้ server ตรวจและบันทึก
+// FILE MAP: [01] bootstrap/environment → [02] login UI/providers/OTP → [03] user/adaptive state → [04] score save → [05] session/OAuth return
+// ใช้ session ร่วมกับเกมเสียง (same-origin) → ล็อกอินที่เกมไหนก็รู้จักกัน
+// guard เต็ม: ถ้า Supabase/ตารางยังไม่พร้อม → เกมเล่นได้ปกติ ไม่พัง
+// ต้องโหลดหลัง: supabase-js CDN, supabase-config.js, game-account.js, auth-widget.js
+// Lin 2026-06-27 (v2: badge เหมือนเกมเสียง + ปุ่ม Login-only)
+// Lin 2026-07-02 (v3: แยกเกม reading/typing + กัน email แอดมิน + retry ถ้าคอลัมน์ game ยังไม่มี)
+// Lin 2026-07-03 (v4: badge (ชื่อ/✏️/🏆/📊/登出) เปลี่ยนไปใช้ window.SITE_AUTH ตัวกลาง
+//   — เดิมมี client + session listener แยกของตัวเอง + editor เป็น prompt() ธรรมดา
+//   ตอนนี้ใช้ client เดียว + editor แบบเดียวกับทุกหน้า (มีรูป/แบดจ์/sync ข้ามหน้า)
+//   มี fallback: ถ้า SITE_AUTH โหลดไม่ทัน ยังมี client+listener สำรองของตัวเอง เกมไม่พัง)
+// ============================================================
+(function () {
+  var publicLoginOnly = window.MRT_MINIMUM_GUEST_LAUNCH === true && window.LOGIN_CORE_PUBLIC_ENTRY === true;
+  if (window.MRT_MINIMUM_GUEST_LAUNCH === true && !publicLoginOnly) {
+    window.READING_AUTH = {
+      ready: true,
+      user: null,
+      saveScore: function () { return null; },
+      render: function () {
+        var host = document.getElementById('rg-login-slot');
+        if (host) host.innerHTML = '';
+      },
+      startLineLink: function () {},
+      openLoginGate: function () {}
+    };
+    return;
+  }
+  var cfg = window.SUPABASE_CONFIG || {};
+  var ready = cfg.url && cfg.anonKey &&
+              cfg.url.indexOf('YOUR_') === -1 && cfg.anonKey.indexOf('YOUR_') === -1 &&
+              window.supabase && window.supabase.createClient;
+
+  // ถ้า Supabase ไม่พร้อม → คืน API เปล่า (เกมยังเล่นได้)
+  if (!ready) { window.READING_AUTH = { ready: false, user: null, saveScore: function () {}, render: function () {} }; return; }
+
+  var sb = window.getSupabaseClient ? window.getSupabaseClient() : window.supabase.createClient(cfg.url, cfg.anonKey);
+  // v16 (LIN 2026-07-26): startLineLink ให้หน้าอื่น (auth-widget.js ปุ่ม "連接 LINE 帳號") เรียกได้
+  // v18 (LIN 2026-08-10, P7-02 C.5): openLoginGate ให้หน้าอื่น (game-content-client.js แถบแจ้ง
+  //   "เนื้อหาฟรีหมดแล้ว") เปิด modal ล็อกอินเดียวกันนี้ได้ตรงๆ โดยไม่ต้องหาปุ่ม #rg-login-btn เอง
+  var loginUser = null;
+  var API = { ready: true, user: null, saveScore: saveScore, render: render, startLineLink: function () { startLineLogin(true); }, openLoginGate: openGate };
+  window.READING_AUTH = API;
+
+  function slot() { return document.getElementById('rg-login-slot'); }
+  // v7 (LIN 2026-07-25): แยกประเภท "เปิดจากในแอปไหน" ให้ละเอียดขึ้น (เดิมรู้แค่ true/false)
+  //   ใช้เช็คได้จริงว่าล็อกอินพังเพราะเปิดจากแอปไหน ไม่ใช่แค่ซ่อนปุ่ม Google เฉยๆ
+  // v17 (LIN 2026-07-26): เพิ่มการจับแอปที่ Google/Facebook OAuth บล็อกจริงอีก 5 แอป (เดิมจับแค่ 4 แอป
+  //   LINE/FB/IG/Messenger — Threads/TikTok/WeChat/KakaoTalk/Android WebView ทั่วไปหลุดผ่านไปได้ ปุ่ม Google/Facebook
+  //   จะโชว์ให้กดทั้งที่กดแล้วเจอหน้า error ของ Google เองตรงๆ "403: disallowed_useragent" — ไม่ผ่านโค้ดเรา เตือนไม่ได้)
+  //   อ้างอิงรายชื่อ UA signature ที่ Google บล็อกจริง (ตรวจสอบแล้ว 2026-07-26):
+  //   https://truelink-group.com/en/blog/why-google-login-fails-in-line-facebook-in-app-browsers-2026/
+  //   Threads='Barcelona' (ชื่อรหัสภายในของแอป Threads) ยืนยันจาก Google Search Community/Auth0 community เช่นกัน
+  //   ตั้งใจไม่จับ iOS WebView ทั่วไป (เบราว์เซอร์จริงบน iOS อย่าง Chrome/Firefox ก็ใช้ WebKit เหมือนกัน จะจับผิดคนกด
+  //   จากเบราว์เซอร์จริงไปด้วย) จับแค่ "; wv)" ซึ่งเป็น signature เฉพาะ Android System WebView เท่านั้น
+  function inAppChannel() {
+    var ua = navigator.userAgent || '';
+    if (/\bLine\//i.test(ua)) return 'line';
+    if (/FBAN|FBAV|FB_IAB/i.test(ua)) return 'fb';
+    if (/Instagram/i.test(ua)) return 'ig';
+    if (/Messenger/i.test(ua)) return 'messenger';
+    if (/Barcelona/i.test(ua)) return 'threads';
+    if (/BytedanceWebview|musical_ly/i.test(ua)) return 'tiktok';
+    if (/MicroMessenger/i.test(ua)) return 'wechat';
+    if (/KAKAOTALK/i.test(ua)) return 'kakao';
+    if (/; ?wv\)/i.test(ua)) return 'androidwebview';
+    return null;
+  }
+  function isInApp() { return !!inAppChannel(); }
+  function deviceType() { return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent || '') ? 'mobile' : 'desktop'; }
+  // ยิง GA4 เช็คว่าล็อกอินมาจากช่องทางไหน + สำเร็จ/พังไหม (LIN สั่ง 2026-07-25)
+  // เห็นปัญหาแต่ละช่องทางได้จริง เช่น "เข้าจากในแอป LINE กด Google แล้วพัง"
+  function trackLogin(evt, provider, extra) {
+    try {
+      if (typeof gtag !== 'function') return;
+      var params = { category: window.GA_CATEGORY || 'unknown', provider: provider || 'unknown',
+        channel: inAppChannel() || 'browser', device: deviceType(), source_page: location.pathname };
+      if (extra) { for (var k in extra) { if (extra.hasOwnProperty(k)) params[k] = extra[k]; } }
+      gtag('event', evt, params);
+    } catch (e) {}
+  }
+  // จำไว้ว่า "กำลังพยายามล็อกอินด้วยอะไรอยู่" ข้ามการ redirect ของ OAuth ได้ (sessionStorage ทนต่อการรีโหลดหน้า)
+  // ใช้ตัดสินใจตอน setUser() ว่า user คนนี้เพิ่ง "ล็อกอินสำเร็จจริง" (ไม่ใช่แค่โหลดหน้าแล้วมี session เดิมอยู่)
+  function markPendingLogin(provider) { try { sessionStorage.setItem('rg_login_pending', provider); } catch (e) {} }
+  function takePendingLogin() { try { var p = sessionStorage.getItem('rg_login_pending'); sessionStorage.removeItem('rg_login_pending'); return p; } catch (e) { return null; } }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  // v9 (LIN 2026-07-25): จำ "ครั้งที่แล้วล็อกอินด้วยอะไร" ไว้ในเครื่อง (localStorage ทนได้แม้ปิดเบราว์เซอร์/log out)
+  //   กันคนละสับสนไปกดคนละช่องทางแล้วได้บัญชีใหม่ (คะแนนหาย) — เตือนก่อนกดตั้งแต่เปิด modal เลย
+  var LAST_PROVIDER_KEY = 'rg_last_login_provider';
+  // v13 (LIN 2026-07-25, audit รอบ 2): Custom OIDC provider ของ Supabase เก็บชื่อเป็น "custom:line"
+  //   (มี prefix "custom:" ติดมาด้วยจริง ตามเอกสาร Supabase) → ตัด prefix ออกก่อนเก็บ กันโชว์ "custom:line" ตรงๆ ให้ผู้เล่นเห็น
+  function saveLastProvider(p) { try { if (p) localStorage.setItem(LAST_PROVIDER_KEY, String(p).replace(/^custom:/, '')); } catch (e) {} }
+  function getLastProvider() { try { return localStorage.getItem(LAST_PROVIDER_KEY) || ''; } catch (e) { return ''; } }
+  function providerLabel(p) {
+    return { google: 'Google', facebook: 'Facebook', email: 'Email 驗證碼', line: 'LINE', apple: 'Apple' }[p] || p;
+  }
+
+  // เกมของหน้าปัจจุบัน — ใช้ตัดสินใจว่า 🏆 ต้องพาไปกระดานไหน + บันทึกคะแนนเป็นเกมอะไร
+  // v4 (LIN 2026-07-03): เพิ่ม 'word_order' (เกมเรียงประโยค/語序練習室) — เดิมมีแค่ typing/reading
+  // v5 (LIN 2026-07-03): เพิ่ม 'lego' (造句練習室/樂高式造句) — เกมนี้กับ word_order เป็นคนละเกม ห้ามใช้ key เดียวกัน
+  // v6 (LIN 2026-07-16): เพิ่ม 'tone_finder' (เกมเสียง/tone-finder.html) — รวมระบบล็อกอินเข้ามาใช้ไฟล์นี้ร่วมกับอีก 4 เกม
+  //   (เดิมเกมเสียงใช้ supabase-auth.js แยกของตัวเอง) — ตั้งแต่ S29 คะแนน Core 5 ผ่าน score-submit จุดเดียว
+  //   เพิ่มแค่ branch นี้ให้ badge/🏆 ลิงก์ถูกที่ ไม่กระทบ 4 เกมเดิม
+  // v7 (LIN 2026-07-31): เพิ่ม 'mix' (綜合遊戲/mix.html) — ให้ล็อกอิน+เซฟคะแนนใช้ระบบเดียวกับ 5 เกมเดิม
+  // v8 (LIN 2026-08-01): เปลี่ยนชื่อไฟล์ mix.html → games-challenge.html + เปลี่ยน id 'mix' → 'challenge'
+  //   คะแนนเกมรวมเก็บใน reading_sessions.game='challenge' (คนละแถวจาก reading/typing/lego/word_order เดิม แยกกระดานของตัวเอง
+  //   mix-board.html) — ไม่กระทบ 5 เกมเดิมเลย (เพิ่ม branch ใหม่เฉยๆ ไม่แก้ของเดิม)
+  function pageGame() {
+    var p = location.pathname || '';
+    if (/tone-finder/i.test(p)) return 'tone_finder';
+    if (/listening-game/i.test(p)) return 'listening';
+    if (/typing-game/i.test(p)) return 'typing';
+    if (/word-order/i.test(p)) return 'word_order';
+    if (/lego/i.test(p)) return 'lego';
+    if (/games-challenge/i.test(p) || /\bmix/i.test(p)) return 'challenge';
+    if (/vault/i.test(p)) return 'vault'; // Lin 2026-08-02: หน้า單字庫ไม่ใช่เกมมีคะแนน กันปุ่ม🏆ในbadgeชี้ผิดไปreading-board.html
+    return 'reading';
+  }
+  function boardHref() {
+    var g = pageGame();
+    if (g === 'tone_finder') return 'leaderboard.html';
+    if (g === 'listening') return 'listening-board.html';
+    if (g === 'typing') return 'typing-board.html';
+    if (g === 'word_order') return 'word-order-board.html';
+    if (g === 'lego') return 'lego-board.html';
+    if (g === 'challenge') return 'mix-board.html';
+    if (g === 'vault') return 'games.html'; // ไม่มีกระดานคะแนนของตัวเอง ส่งไปหน้าเลือกเกมแทน
+    return 'reading-board.html';
+  }
+
+  // ── badge (ล็อกอินแล้ว): ให้ window.SITE_AUTH (auth-widget.js) วาดให้ — เหมือนกับทุกหน้า ──
+  // ── ยังไม่ล็อกอิน: ปุ่ม Login-only ของหน้านี้เอง (เปิด modal OTP/Google ด้านล่าง) ──
+  function render() {
+    var el = slot(); if (!el) return;
+    if (loginUser) {
+      // ล้างปุ่ม Login-only เดิม (ถ้ายังค้างจากตอนยังไม่ล็อกอิน) ก่อน — เหลือแค่ badge ของ SITE_AUTH
+      // (กันโชว์ซ้อนกันสองอัน: ปุ่มเดิม + badge ใหม่) LIN 2026-07-03
+      Array.prototype.slice.call(el.children).forEach(function (child) {
+        if (child.id !== 'sa-badge-rg-login-slot') child.remove();
+      });
+      if (window.SITE_AUTH && window.SITE_AUTH.ready) {
+        window.SITE_AUTH.renderBadge('rg-login-slot', {
+          leaderboardHref: boardHref(),
+          progressHref: 'my-progress.html',
+          showParkedAccountLinks: false
+        });
+      }
+    } else {
+      // v2 (Lin 2026-07-10): หน้าเกม (reading/typing/word-order/lego/tone-finder) มีแบนเนอร์เหลือง "先玩玩看...登入解鎖"
+      // อยู่เหนือแถบนี้แล้ว ซึ่งกดแล้ว proxy-click ปุ่มนี้อยู่ดี (ดู rgCtaLogin/woCtaLogin/legoCtaLogin/tfCtaLogin)
+      // → โชว์ปุ่มนี้ซ้ำสองอันดูรก จึงซ่อนด้วย display:none แต่ยังคงอยู่ใน DOM ให้ปุ่มแบนเนอร์กดผ่านได้เหมือนเดิม
+      var hideDup = !publicLoginOnly && !!document.getElementById('rg-cta-login');
+      el.innerHTML =
+        '<button id="rg-login-btn" class="mrt-login-button" style="display:' + (hideDup ? 'none' : 'flex') + ';align-items:center;gap:6px;' +
+        'background:linear-gradient(135deg,#8B6310,#C8973A);color:#fff;border:none;border-radius:20px;' +
+        'padding:6px 16px;cursor:pointer;font-size:12.5px;font-weight:700;font-family:\'Noto Sans TC\',sans-serif;' +
+        'box-shadow:0 2px 8px rgba(139,99,16,0.28);letter-spacing:0.3px;transition:filter .15s;"' +
+        ' onmouseover="this.style.filter=\'brightness(1.1)\'" onmouseout="this.style.filter=\'none\'">🔑 登入</button>';
+      var b = document.getElementById('rg-login-btn');
+      if (b) b.onclick = doLogin;
+    }
+  }
+
+  // ── modal ล็อกอิน: Email OTP 6 หลัก + Google (เหมือนเกมเสียง) LIN 2026-06-27 ──
+  var rgGate = null, otpEmail = '', otpChallengeId = '', otpCooldown = 0, otpTimer = null;
+  var otpRequestPending = false, otpVerifyPending = false;
+  var otpFlowEpoch = 0, turnstileWidgetId = null, turnstileLoader = null;
+
+  // Safe rollout default: native remains active until the broker SQL/Edge/secrets/widget
+  // have passed the separate staging proof and Production activation gate.
+  function otpSecurityConfig() { return window.EMAIL_OTP_SECURITY_CONFIG || {}; }
+  function otpBrokerEnabled() { return otpSecurityConfig().mode === 'broker'; }
+  function clearTurnstileWidget() {
+    if (turnstileWidgetId !== null && window.turnstile && window.turnstile.remove) {
+      try { window.turnstile.remove(turnstileWidgetId); } catch (e) {}
+    }
+    turnstileWidgetId = null;
+  }
+  function loadTurnstile() {
+    if (window.turnstile && window.turnstile.render) return Promise.resolve(window.turnstile);
+    if (turnstileLoader) return turnstileLoader;
+    turnstileLoader = new Promise(function (resolve, reject) {
+      var existing = document.querySelector && document.querySelector('script[data-email-otp-turnstile]');
+      var script = existing || document.createElement('script');
+      var timer = setTimeout(function () { reject(new Error('turnstile_load_timeout')); }, 10000);
+      function readyTurnstile() {
+        if (!(window.turnstile && window.turnstile.render)) return;
+        clearTimeout(timer);
+        resolve(window.turnstile);
+      }
+      script.addEventListener('load', readyTurnstile);
+      script.addEventListener('error', function () { clearTimeout(timer); reject(new Error('turnstile_load_failed')); });
+      if (!existing) {
+        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+        script.async = true;
+        script.defer = true;
+        script.setAttribute('data-email-otp-turnstile', '1');
+        document.head.appendChild(script);
+      }
+      readyTurnstile();
+    }).catch(function (error) { turnstileLoader = null; throw error; });
+    return turnstileLoader;
+  }
+  function getTurnstileToken(action) {
+    var siteKey = String(otpSecurityConfig().turnstileSiteKey || '');
+    if (!otpBrokerEnabled() || !siteKey) return Promise.reject(new Error('turnstile_not_configured'));
+    return loadTurnstile().then(function (turnstile) {
+      var container = rgGate && rgGate.querySelector('#rg-turnstile');
+      if (!container) throw new Error('turnstile_container_missing');
+      clearTurnstileWidget();
+      container.innerHTML = '';
+      return new Promise(function (resolve, reject) {
+        turnstileWidgetId = turnstile.render(container, {
+          sitekey: siteKey,
+          action: action,
+          theme: 'light',
+          size: 'flexible',
+          callback: function (token) { resolve(token); },
+          'error-callback': function () { reject(new Error('turnstile_failed')); },
+          'expired-callback': function () { reject(new Error('turnstile_expired')); },
+          'timeout-callback': function () { reject(new Error('turnstile_timeout')); }
+        });
+      });
+    });
+  }
+
+  function doLogin() { openGate(); }
+
+  function openGate() {
+    if (API.user) return;
+    if (!rgGate) buildGate(); else renderGate();
+    rgGate.style.display = 'flex';
+  }
+  function closeGate() {
+    otpFlowEpoch++;
+    otpRequestPending = false;
+    otpVerifyPending = false;
+    clearTurnstileWidget();
+    if (rgGate) rgGate.style.display = 'none';
+    if (otpTimer) { clearInterval(otpTimer); otpTimer = null; }
+  }
+  function buildGate() {
+    rgGate = document.createElement('div');
+    rgGate.id = 'rg-gate';
+    rgGate.style.cssText =
+      'position:fixed;inset:0;z-index:100000;display:none;align-items:center;justify-content:center;padding:20px;' +
+      'background:rgba(28,18,4,0.82);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);' +
+      'font-family:"Noto Sans TC","Noto Sans Thai",sans-serif;';
+    document.body.appendChild(rgGate);
+    rgGate.addEventListener('click', function (e) { if (e.target === rgGate) closeGate(); });
+    renderGate();
+  }
+  function renderGate() {
+    if (!rgGate) return;
+    clearTurnstileWidget();
+    var inAppCh = inAppChannel();
+    var inApp = !!inAppCh;
+    var brokerMode = otpBrokerEnabled();
+    // v12 (LIN 2026-07-25): เปลี่ยนปุ่ม Google/Facebook/LINE เป็น "แค่โลโก้" ทรงกลม เรียงแถวเดียวกัน
+    //   (เดิมเต็มความกว้าง+ข้อความ ซ้อนกัน 3 แถวสูงมาก เสี่ยงล้นจอมือถือจอเล็ก) ตาม Lin สั่ง 2026-07-25
+    //   มี title/aria-label เก็บข้อความเดิมไว้ให้คนอ่านหน้าจอ/hover เห็นความหมาย ไม่เสียการเข้าถึง
+    var ICON_BTN = 'width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.12);';
+    var googleBtn = '<button id="rg-g" title="使用 Google 登入" aria-label="使用 Google 登入" style="' + ICON_BTN + 'border:1px solid #dadce0;background:#fff;">' +
+      '<svg width="24" height="24" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg></button>';
+    // v8 (LIN 2026-07-25): เพิ่มปุ่ม Facebook
+    // v11 (LIN 2026-07-25, แก้จาก audit): เดิมคิดว่า Facebook ไม่บล็อก OAuth ในเว็บวิวฝัง (ผิด!)
+    //   Facebook เองก็บล็อกคล้าย Google (disallowed_useragent) ในเว็บวิวของแอปอื่น (เช่น LINE) เหมือนกัน
+    //   → ซ่อนปุ่มนี้ตอนเปิดจากในแอปด้วย เหมือน Google (ดู render logic ด้านล่าง)
+    var facebookBtn = '<button id="rg-fb" title="使用 Facebook 登入" aria-label="使用 Facebook 登入" style="' + ICON_BTN + 'border:none;background:#1877F2;">' +
+      '<svg width="24" height="24" viewBox="0 0 24 24"><path fill="#fff" d="M22 12.06C22 6.51 17.52 2 12 2S2 6.51 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.78-1.63 1.58v1.85h2.78l-.44 2.91h-2.34v7.03C18.34 21.24 22 17.08 22 12.06z"/></svg></button>';
+    // v10 (LIN 2026-07-25): เพิ่มปุ่ม LINE — ผูกผ่าน Custom OIDC Provider ของ Supabase (custom:line)
+    //   ใช้ channel "ผูกบัญชีนักเรียน" (LINE Login) ตัวเดิมที่ line-link.html ใช้อยู่ — คนละระบบกัน ไม่กระทบกัน
+    //   สีเขียว #06C755 = สีทางการ LINE (ข้อยกเว้นตามกฎธีมเว็บ CLAUDE.md)
+    // v11 (LIN 2026-07-25, audit): LINE เปิดจาก "ในแอป LINE เอง" ควรใช้ได้ปกติ (ระบบเดียวกัน)
+    //   แต่เปิดจากในแอปอื่น (FB/IG/Messenger) ยัง "ไม่ยืนยันแน่ชัด" ว่าใช้ได้จริง (ไม่มีเอกสารยืนยัน)
+    //   → โชว์ปุ่มนี้เฉพาะตอนไม่ได้เปิดจากในแอป หรือเปิดจากในแอป LINE เอง (ดู render logic ด้านล่าง)
+    var lineBtn = '<button id="rg-line" title="使用 LINE 登入" aria-label="使用 LINE 登入" style="' + ICON_BTN + 'border:none;background:#06C755;">' +
+      '<svg width="24" height="24" viewBox="0 0 24 24"><path fill="#fff" d="M12 2C6.48 2 2 5.69 2 10.24c0 4.08 3.54 7.5 8.32 8.15.32.07.76.21.87.49.1.25.06.65.03.9l-.14.85c-.04.25-.19.98.86.53 1.05-.44 5.67-3.34 7.74-5.72C21.15 13.62 22 12.02 22 10.24 22 5.69 17.52 2 12 2zm-3.3 10.6H7.05a.3.3 0 0 1-.3-.3V8.03a.3.3 0 0 1 .3-.3h.3c.16 0 .3.14.3.3v3.68h1.72a.3.3 0 0 1 .3.3v.3a.3.3 0 0 1-.3.3zm1.86 0h-.3a.3.3 0 0 1-.3-.3V8.03a.3.3 0 0 1 .3-.3h.3a.3.3 0 0 1 .3.3v4.28a.3.3 0 0 1-.3.3zm4.44 0h-.3a.3.3 0 0 1-.24-.12l-1.68-2.27v2.09a.3.3 0 0 1-.3.3h-.3a.3.3 0 0 1-.3-.3V8.03a.3.3 0 0 1 .3-.3h.3c.09 0 .18.04.24.12l1.68 2.27V8.03a.3.3 0 0 1 .3-.3h.3a.3.3 0 0 1 .3.3v4.28a.3.3 0 0 1-.3.3zm3.72-3.68h-1.72v.72h1.72a.3.3 0 0 1 .3.3v.3a.3.3 0 0 1-.3.3h-1.72v.72h1.72a.3.3 0 0 1 .3.3v.3a.3.3 0 0 1-.3.3h-2.32a.3.3 0 0 1-.3-.3V8.03a.3.3 0 0 1 .3-.3h2.32a.3.3 0 0 1 .3.3v.3a.3.3 0 0 1-.3.3z"/></svg></button>';
+    // v9 (LIN 2026-07-25): เตือน "ครั้งที่แล้วล็อกอินด้วยอะไร" — กันสับสนไปกดคนละช่องทางแล้วได้บัญชีใหม่ (คะแนนหาย)
+    var lastProvider = getLastProvider();
+    var lastProviderHint = lastProvider
+      ? '<div style="margin:0 0 14px;background:#EAF4EC;border:1px solid #A9D3B4;border-radius:10px;padding:8px 12px;font-size:12.5px;color:#2d6a4f;line-height:1.5;">💡 上次你是用 <b>' + esc(providerLabel(lastProvider)) + '</b> 登入的，建議用同一種方式，避免登入到不同帳號</div>'
+      : '';
+    // Phase 1 human E2E (2026-08-16): ผู้เล่นจริงแยก "ล็อกอิน" กับ "เชื่อมช่องทางเพิ่ม" ไม่ออก
+    // คำเตือนนี้ต้องเห็นทุกครั้ง แม้ logout จะล้าง last-provider hint เพื่อความเป็นส่วนตัวบนเครื่องร่วมกัน
+    var accountMethodWarning =
+      '<div id="rg-account-method-warning" style="margin:0 0 14px;background:#FFF4D8;border:1.5px solid #D7A63C;border-radius:10px;padding:10px 12px;font-size:12.5px;color:#6B4B08;line-height:1.65;text-align:left;">' +
+        '<b>⚠️ 已有帳號？先用原本的方式登入</b><br>' +
+        '登入後，再到「✏️ 個人檔案」連接 Facebook／LINE。直接改按另一種登入方式，可能會建立另一個帳號，原本進度不會跟過去。' +
+      '</div>';
+    rgGate.innerHTML =
+      '<div style="position:relative;background:#fff;max-width:380px;width:100%;max-height:88vh;overflow-y:auto;border-radius:18px;padding:30px 26px;box-shadow:0 18px 50px rgba(0,0,0,0.35);text-align:center;">' +
+      '<button id="rg-x" aria-label="關閉" style="position:absolute;top:10px;right:12px;border:none;background:none;font-size:20px;line-height:1;color:#C3B594;cursor:pointer;">✕</button>' +
+      '<div style="font-size:40px;line-height:1;margin-bottom:10px;">🔐</div>' +
+      '<h2 style="margin:0 0 6px;font-size:20px;color:#5C4410;font-weight:800;">登入</h2>' +
+      '<p style="margin:0 0 16px;font-size:14px;color:#8B7340;line-height:1.6;">使用 Email 驗證碼，或選擇下方方式登入。</p>' +
+      lastProviderHint +
+      accountMethodWarning +
+      '<input id="rg-email" type="email" inputmode="email" autocomplete="email" placeholder="輸入 Email" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #E5D9B8;border-radius:10px;font-size:15px;color:#5C4410;outline:none;">' +
+      '<button id="rg-send" style="margin-top:10px;width:100%;border:none;background:#C8973A;color:#fff;border-radius:10px;padding:13px;cursor:pointer;font-size:16px;font-weight:800;">寄送驗證碼 →</button>' +
+      (brokerMode ? '<div id="rg-turnstile" style="margin-top:10px;min-height:1px;"></div>' : '') +
+      '<div id="rg-step2" style="display:none;margin-top:12px;">' +
+        '<input id="rg-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="輸入 6 位數驗證碼" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #E5D9B8;border-radius:10px;font-size:18px;letter-spacing:4px;text-align:center;color:#5C4410;outline:none;">' +
+        '<button id="rg-verify" style="margin-top:10px;width:100%;border:none;background:#2E7D4F;color:#fff;border-radius:10px;padding:13px;cursor:pointer;font-size:16px;font-weight:800;">確認登入</button>' +
+        '<button id="rg-resend" style="margin-top:8px;width:100%;border:1px solid #E5D9B8;background:#fff;color:#8B7340;border-radius:10px;padding:9px;cursor:pointer;font-size:13px;">重新寄送驗證碼</button>' +
+      '</div>' +
+      '<div id="rg-msg" style="display:none;font-size:12.5px;margin:10px 0 0;text-align:left;line-height:1.5;"></div>' +
+      // v11 (LIN 2026-07-25, audit): แก้ตาม audit — Facebook เองก็บล็อก OAuth ในเว็บวิวฝัง (เหมือน Google)
+      //   LINE ยังไม่ยืนยันว่าใช้ได้จากในแอปอื่น (นอกแอป LINE) → โชว์แค่ตอนไม่ได้เปิดจากในแอป หรือเปิดจากในแอป LINE เอง
+      (inApp
+        ? (inAppCh === 'line'
+            ? ('<div style="margin-top:14px;background:#FBF0DA;border:1px solid #EAC36B;border-radius:12px;padding:10px 12px;font-size:12.5px;color:#8B6310;line-height:1.6;">📩 在 App 內用上面的 <b>Email 驗證碼</b>或下面的 <b>LINE</b> 登入即可（Google / Facebook 在 App 內無法使用）</div>' +
+               '<div style="display:flex;justify-content:center;gap:14px;margin-top:12px;">' + lineBtn + '</div>')
+            : ('<div style="margin-top:14px;background:#FBF0DA;border:1px solid #EAC36B;border-radius:12px;padding:10px 12px;font-size:12.5px;color:#8B6310;line-height:1.6;">📩 在 App 內請用上面的 <b>Email 驗證碼</b>登入（Google / Facebook / LINE 在此 App 內可能無法使用，建議用瀏覽器開啟本頁再登入）</div>'))
+        // v13 (LIN 2026-07-25, audit รอบ 2): เพิ่มคำอธิบายที่ divider จาก "或" เฉยๆ → "或用以下方式登入"
+        //   เดิมปุ่มไอคอนล้วนไม่มีข้อความกำกับเลย (title/aria-label โชว์แค่ hover เมาส์ มือถือไม่มี hover)
+        //   คนเข้าเว็บครั้งแรกอาจไม่รู้ว่าวงกลม 3 สีคือปุ่มล็อกอิน
+        : ('<div style="display:flex;align-items:center;gap:10px;margin:16px 0;color:#C3B594;font-size:12px;"><span style="flex:1;height:1px;background:#EADFBF;"></span>或用以下方式登入<span style="flex:1;height:1px;background:#EADFBF;"></span></div>' +
+           '<div style="display:flex;justify-content:center;gap:14px;">' + googleBtn + facebookBtn + lineBtn + '</div>')) +
+      '<p style="margin:16px 0 0;font-size:12px;color:#A07A1E;">點擊空白處可先返回</p>' +
+      '</div>';
+    rgGate.querySelector('#rg-x').onclick = closeGate;
+    var se = rgGate.querySelector('#rg-email');
+    var sBtn = rgGate.querySelector('#rg-send');
+    if (sBtn) sBtn.onclick = function () { startOtp(se.value, false); };
+    if (se) se.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') startOtp(se.value, false); });
+    var ci = rgGate.querySelector('#rg-code');
+    var vBtn = rgGate.querySelector('#rg-verify');
+    if (vBtn) vBtn.onclick = function () { verifyCode(ci.value); };
+    if (ci) ci.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') verifyCode(ci.value); });
+    var rBtn = rgGate.querySelector('#rg-resend');
+    if (rBtn) rBtn.onclick = function () { if (otpCooldown <= 0) startOtp(otpEmail || se.value, true); };
+    if (!inApp) { var g = rgGate.querySelector('#rg-g'); if (g) g.onclick = function () { oauthLogin('google', 'google'); }; }
+    var fb = rgGate.querySelector('#rg-fb'); if (fb) fb.onclick = function () { oauthLogin('facebook', 'facebook'); };
+    var ln = rgGate.querySelector('#rg-line'); if (ln) ln.onclick = function () { startLineLogin(); };
+  }
+  // v11 (LIN 2026-07-25, audit): รวมโค้ดปุ่ม Google/Facebook/LINE เป็นฟังก์ชันเดียว (เดิมก็อปวาง 3 รอบ)
+  //   เพิ่ม 2 จุดที่ audit เจอว่าขาด: (1) .catch() กัน promise reject ตกหล่นไม่ยิง trackLogin (2) setMsg()
+  //   โชว์ error ให้ผู้เล่นเห็นจริง — เดิมกดแล้วพังเงียบๆ ไม่รู้ว่าเกิดอะไรขึ้น ผู้เล่นนึกว่าเว็บค้าง
+  function oauthLogin(trackName, supabaseProvider) {
+    trackLogin('login_attempt', trackName);
+    markPendingLogin(trackName);
+    function onFail(reason) {
+      trackLogin('login_fail', trackName, { reason: String(reason || '').slice(0, 90) });
+      takePendingLogin();
+      setMsg('登入失敗，請改用上面的 Email 驗證碼再試一次', true);
+    }
+    try {
+      // 2026-08-10 (P7-02 staging): ตัด "#" เดิมทิ้งก่อนส่งให้ Supabase เสมอ — ถ้า location.href มี # ค้างอยู่ก่อนแล้ว
+      // (เช่น ผู้เล่นเคยกดลิงก์ href="#" ในหน้า) Supabase จะเอา redirectTo นี้ไปต่อท้ายด้วย #access_token=...
+      // กลายเป็น "##access_token=..." ซึ่ง Google มองว่า URL ผิดรูปแบบ แล้วปฏิเสธด้วยหน้า error ตรงๆ ("400. That's an error.")
+      var cleanRedirect = location.href.split('#')[0];
+      var oauthOptions = { redirectTo: cleanRedirect };
+      // Account-switch safety: Google otherwise reuses the provider session and
+      // silently signs the previous account back in after a local logout.
+      if (supabaseProvider === 'google') oauthOptions.queryParams = { prompt: 'select_account' };
+      sb.auth.signInWithOAuth({ provider: supabaseProvider, options: oauthOptions })
+        .then(function (res) { if (res && res.error) onFail(res.error.message); }, function (e) { onFail(e && e.message || e); })
+        .catch(function (e) { onFail(e && e.message || e); });
+    } catch (e) { onFail(e && e.message || e); }
+  }
+  // v15 (LIN 2026-07-26): LINE เปลี่ยนมาใช้ Edge Function ของเราเอง ไม่ใช้ Supabase Custom OIDC
+  // Provider (oauthLogin ด้านบน) อีกต่อไป — พังจริง เพราะ LINE เซ็น id_token แบบ HS256 ตอน web
+  // login แต่ Supabase custom provider คาด ES256 (ยืนยันจาก Supabase Auth log จริง 26/07/2026:
+  // "expected [ES256] got HS256") ดู supabase/functions/line-login/index.ts + line-callback.html
+  function randomToken(len) {
+    var arr = new Uint8Array(len || 16);
+    (window.crypto || window.msCrypto).getRandomValues(arr);
+    var out = '';
+    for (var i = 0; i < arr.length; i++) { var h = arr[i].toString(16); out += (h.length < 2 ? '0' + h : h); }
+    return out;
+  }
+  // v16 (LIN 2026-07-26): เพิ่มโหมด "link" — ผูก LINE เข้ากับบัญชีที่ล็อกอินอยู่แล้ว แทนที่จะสร้าง
+  //   บัญชีใหม่ (เจอจริง: Lin ล็อกอินด้วย LINE แล้วได้บัญชีแยกจากบัญชีเดิม ไม่เชื่อมโปรไฟล์/คะแนนเก่า)
+  //   linkMode=true ใช้ตอนกดปุ่ม "連接 LINE 帳號" จากหน้าแก้โปรไฟล์ (auth-widget.js เรียกผ่าน
+  //   window.READING_AUTH.startLineLink) — เก็บ flag ไว้ให้ line-callback.js รู้ว่าต้องทำโหมดไหน
+  function startLineLogin(linkMode) {
+    var channelId = (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.lineChannelId) || '';
+    if (!channelId) { setMsg('LINE 登入尚未設定完成，請改用上面的 Email 驗證碼', true); return; }
+    if (linkMode) {
+      if (!API.user) return; // ต้องล็อกอินอยู่ก่อนถึงจะผูกได้
+    } else {
+      trackLogin('login_attempt', 'line');
+      markPendingLogin('line');
+    }
+    var state = randomToken(16);
+    var nonce = randomToken(16);
+    try {
+      // 2026-08-08: เปลี่ยนจาก sessionStorage → localStorage — เจอบั๊กจริงจาก Lin ทดสอบบนซาฟารี
+      //   (Mac ที่ลงแอป LINE เดสก์ท็อปไว้ด้วย): ซาฟารีส่งต่อการล็อกอิน LINE ไปให้แอป LINE จัดการแทน
+      //   แล้วเปิดหน้า redirect_uri กลับมาเป็น "แท็บ/หน้าต่างใหม่" ไม่ใช่แท็บเดิมที่กดปุ่มไว้ —
+      //   sessionStorage ผูกกับแท็บเดิมเท่านั้นเลยหายไป ทำให้เช็ค state ใน line-callback.js พังทุกครั้ง
+      //   (ใช้งานได้ปกติในเบราว์เซอร์ในแอป LINE เพราะไม่มีการสลับแท็บแบบนี้)
+      //   localStorage ผูกกับ origin ไม่ใช่แท็บ ใช้ร่วมกันได้ทุกแท็บ/หน้าต่างของเบราว์เซอร์เดียวกัน แก้ปัญหานี้ได้
+      //   ยังลบทิ้งทันทีหลังใช้ครั้งเดียวเหมือนเดิม (กัน replay) — ดู line-callback.js
+      localStorage.setItem('line_login_state', state);
+      localStorage.setItem('line_login_nonce', nonce);
+      localStorage.setItem('line_login_return_to', location.pathname + location.search);
+      if (linkMode) localStorage.setItem('line_login_link', '1'); else localStorage.removeItem('line_login_link');
+    } catch (e) {}
+    var redirectUri = location.origin + '/line-callback.html';
+    var url = 'https://access.line.me/oauth2/v2.1/authorize'
+      + '?response_type=code'
+      + '&client_id=' + encodeURIComponent(channelId)
+      + '&redirect_uri=' + encodeURIComponent(redirectUri)
+      + '&state=' + encodeURIComponent(state)
+      + '&scope=' + encodeURIComponent('profile openid')
+      + '&nonce=' + encodeURIComponent(nonce);
+    location.href = url;
+  }
+  // v13 (LIN 2026-07-25, audit รอบ 2): เปลี่ยน innerHTML → textContent — ทุก call site เป็นข้อความล้วนอยู่แล้ว
+  //   (ไม่มีใครใช้ tag HTML จริง) ไม่มีอะไรเสีย แต่กันไว้ล่วงหน้าเผื่อ error message จาก Supabase เปลี่ยนรูปแบบในอนาคต
+  function setMsg(msg, isErr) {
+    var el = rgGate && rgGate.querySelector('#rg-msg');
+    if (!el) return;
+    el.style.display = 'block';
+    el.style.color = isErr ? '#C0392B' : '#8B7340';
+    el.textContent = msg;
+  }
+  function startOtp(email, isResend) {
+    if (otpRequestPending) return;
+    email = (email || '').trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { setMsg('Email 格式不正確', true); return; }
+    otpEmail = email;
+    var flowEpoch = ++otpFlowEpoch;
+    otpRequestPending = true;
+    var requestBtn = rgGate && rgGate.querySelector(isResend ? '#rg-resend' : '#rg-send');
+    if (requestBtn) { requestBtn.disabled = true; requestBtn.style.opacity = '0.5'; }
+    setMsg('寄送中…⏳', false);
+    trackLogin('login_attempt', 'email', { step: isResend ? 'resend' : 'send' });
+    function finishRequest() {
+      otpRequestPending = false;
+      if (requestBtn) { requestBtn.disabled = false; requestBtn.style.opacity = '1'; }
+    }
+    function failRequest(error) {
+      if (flowEpoch !== otpFlowEpoch) return;
+      finishRequest();
+      // Keep the public response generic. Account existence and provider details must not leak here.
+      setMsg('暫時無法寄送驗證碼，請稍後再試', true);
+      trackLogin('login_fail', 'email', { step: isResend ? 'resend' : 'send', reason: String(error && error.message || error || '').slice(0, 90) });
+    }
+    var challengePromise = otpBrokerEnabled()
+      ? getTurnstileToken('email_otp_request')
+      : Promise.resolve('');
+    challengePromise.then(function (turnstileToken) {
+      if (flowEpoch !== otpFlowEpoch) throw new Error('stale_otp_request');
+      if (otpBrokerEnabled()) {
+        return sb.functions.invoke('email-otp-auth', {
+          body: { action: 'request', email: email, turnstile_token: turnstileToken }
+        });
+      }
+      return sb.auth.signInWithOtp({ email: email, options: { shouldCreateUser: true } });
+    })
+      .then(function (res) {
+        if (flowEpoch !== otpFlowEpoch) return;
+        if (res && res.error) { failRequest(res.error); return; }
+        if (otpBrokerEnabled()) {
+          var challengeId = res && res.data && res.data.challenge_id;
+          if (!res.data.ok || !/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(String(challengeId || ''))) {
+            failRequest(new Error('invalid_broker_response'));
+            return;
+          }
+          otpChallengeId = challengeId;
+        }
+        finishRequest();
+        var step2 = rgGate.querySelector('#rg-step2'); if (step2) step2.style.display = 'block';
+        var sBtn = rgGate.querySelector('#rg-send'); if (sBtn) sBtn.style.display = 'none';
+        setMsg('驗證碼已寄到 ' + esc(email) + '，請查看信箱（含垃圾信匣）', false);
+        var ci = rgGate.querySelector('#rg-code'); if (ci) ci.focus();
+        startCooldown();
+      }, failRequest).catch(failRequest);
+  }
+  function verifyCode(code) {
+    if (otpVerifyPending) return;
+    code = (code || '').trim();
+    if (!/^\d{6}$/.test(code)) { setMsg('請輸入 6 位數驗證碼', true); return; }
+    if (otpBrokerEnabled() && !otpChallengeId) { setMsg('請先重新寄送驗證碼', true); return; }
+    var flowEpoch = ++otpFlowEpoch;
+    otpVerifyPending = true;
+    var verifyBtn = rgGate && rgGate.querySelector('#rg-verify');
+    if (verifyBtn) { verifyBtn.disabled = true; verifyBtn.style.opacity = '0.5'; }
+    setMsg('驗證中…⏳', false);
+    trackLogin('login_attempt', 'email', { step: 'verify' });
+    markPendingLogin('email');
+    function failVerify(error) {
+      if (flowEpoch !== otpFlowEpoch) return;
+      otpVerifyPending = false;
+      if (verifyBtn) { verifyBtn.disabled = false; verifyBtn.style.opacity = '1'; }
+      setMsg('驗證碼錯誤或已過期，請重新輸入', true);
+      trackLogin('login_fail', 'email', { step: 'verify', reason: String(error && error.message || error || '').slice(0, 90) });
+      takePendingLogin();
+    }
+    var challengePromise = otpBrokerEnabled()
+      ? getTurnstileToken('email_otp_verify')
+      : Promise.resolve('');
+    challengePromise.then(function (turnstileToken) {
+      if (flowEpoch !== otpFlowEpoch) throw new Error('stale_otp_verify');
+      if (otpBrokerEnabled()) {
+        return sb.functions.invoke('email-otp-auth', {
+          body: {
+            action: 'verify', challenge_id: otpChallengeId, email: otpEmail,
+            code: code, turnstile_token: turnstileToken
+          }
+        }).then(function (res) {
+          if (res && res.error) return res;
+          var session = res && res.data && res.data.session;
+          var userId = res && res.data && res.data.user_id;
+          if (!(res && res.data && res.data.ok && session && session.access_token && session.refresh_token && userId)) {
+            return { error: new Error('invalid_broker_session') };
+          }
+          return sb.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token })
+            .then(function (setResult) {
+              var boundUser = setResult && setResult.data && setResult.data.session && setResult.data.session.user;
+              if ((setResult && setResult.error) || !boundUser || boundUser.id !== userId) {
+                return Promise.resolve(sb.auth.signOut({ scope: 'local' })).then(function () {
+                  return { error: (setResult && setResult.error) || new Error('session_binding_failed') };
+                });
+              }
+              return setResult;
+            });
+        });
+      }
+      return sb.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
+    })
+      .then(function (res) {
+        if (flowEpoch !== otpFlowEpoch) return;
+        if ((res && res.error) || !(res && res.data && res.data.session && res.data.session.user)) {
+          failVerify((res && res.error) || new Error('missing_session'));
+          return;
+        }
+        otpVerifyPending = false;
+        setMsg('驗證成功，登入中…', false);
+        // สำเร็จ → onAuthStateChange → setUser → closeGate ปิดให้เอง
+      }, failVerify).catch(failVerify);
+  }
+  function startCooldown() {
+    otpCooldown = otpBrokerEnabled() ? 15 * 60 : 60;
+    if (otpTimer) clearInterval(otpTimer);
+    function tick() {
+      var b = rgGate && rgGate.querySelector('#rg-resend');
+      if (!b) { clearInterval(otpTimer); return; }
+      if (otpCooldown > 0) {
+        var mins = Math.floor(otpCooldown / 60);
+        var secs = String(otpCooldown % 60); if (secs.length < 2) secs = '0' + secs;
+        b.disabled = true; b.style.opacity = '0.5'; b.style.cursor = 'default';
+        b.textContent = '重新寄送 (' + mins + ':' + secs + ')'; otpCooldown--;
+      }
+      else { clearInterval(otpTimer); otpTimer = null; b.disabled = false; b.style.opacity = '1'; b.style.cursor = 'pointer'; b.textContent = '重新寄送驗證碼'; }
+    }
+    tick();
+    otpTimer = setInterval(tick, 1000);
+  }
+
+  // 2026-07-13 Lin (v2): กัน setUser() ยิงซ้ำ — SITE_AUTH.fireChange() มาจากหลายจุด
+  // (getSession resolve + onAuthStateChange initial fire + revalidate ตอนสลับ/กลับมาที่แท็บ)
+  // เดิมทุกครั้งที่ fireChange ยิง setUser จะเรียก GAME_ACCOUNT.sync + loadAdaptiveHistory ซ้ำ
+  // ทั้งที่ user คนเดิมไม่ได้เปลี่ยน → ยิง Supabase เกินจำเป็น (พบ 4-7 ครั้งต่อโหลดหน้าเดียวจริง)
+  // ตอนนี้ sync/loadAdaptiveHistory จะรันแค่ตอน user id เปลี่ยนจริง (ล็อกอิน/สลับบัญชี/ล็อกเอาท์)
+  var lastAdaptiveUserId = null;
+  function setUser(u) {
+    loginUser = u || null;
+    // Public Login is deliberately presentation/session-only while Minimum
+    // Guest owns the game runtime. Game clients continue to observe Guest.
+    API.user = publicLoginOnly ? null : loginUser;
+    if (loginUser) closeGate();   // เพิ่งล็อกอินสำเร็จ → ปิด modal
+    render();
+    // Lin 2026-07-12: auth เพิ่งเสร็จ/เปลี่ยน (getSession เป็น async) → สั่งเกม re-render แถบชวนล็อกอิน "登入解鎖"
+    // แก้บั๊ก: ตอนโหลดหน้า auth ยังไม่เสร็จ การ์ดเลยโชว์ค้าง ทั้งที่จริงล็อกอินอยู่ (ผู้เล่นนึกว่าต้องล็อกอินใหม่ทุกครั้ง)
+    // 🆕 2026-08-10: เพิ่ม 'tfRenderTopBanners' (เกมเสียง/tone-finder.html) — ตอนรวมระบบล็อกอิน
+    // เข้ามาใช้ไฟล์นี้ (v6, 2026-07-16) ลืมเติมชื่อฟังก์ชันรีเฟรชแบนเนอร์ของเกมเสียงเข้าลิสต์นี้
+    // ผลที่เจอจริง: กด 登出 แล้ว #rg-login-slot ถูกซ่อนด้วย hideDup (เพราะมี #rg-cta-login ค้างอยู่ในหน้า)
+    // แต่ #rg-cta-login เองก็ไม่ถูกรีเฟรชให้โชว์ปุ่ม 登入解鎖 กลับมา (เพราะ tfRenderTopBanners ไม่ถูกเรียก)
+    // → ทั้งสองจุดที่ควรมีปุ่มล็อกอินกลายเป็นว่างเปล่าพร้อมกัน = "แถบล็อคอินหายไปทั้งแถบ" หลังกด 登出
+    ['rgRenderGameBar','legoRenderGameBar','woRerenderBar','mxRenderGameBar','tfRenderTopBanners'].forEach(function(fn){ if(typeof window[fn]==='function'){ try{ window[fn](); }catch(e){} } });
+    var uid = (loginUser && loginUser.id) || null;
+    if (uid === lastAdaptiveUserId) return; // user เดิม (หรือยังไม่ล็อกอินเหมือนเดิม) — ไม่ต้องยิงซ้ำ
+    lastAdaptiveUserId = uid;
+    // เพิ่งล็อกอินสำเร็จในแท็บนี้จริงๆ (ไม่ใช่แค่โหลดหน้าแล้วเจอ session เดิม) → ยิง login_success
+    // ทน redirect ของ Google OAuth ได้ (markPendingLogin ใช้ sessionStorage ไม่ใช่ตัวแปรในหน่วยความจำ)
+    if (loginUser) {
+      var pendingProvider = takePendingLogin();
+      if (pendingProvider) trackLogin('login_success', pendingProvider);
+      // จำวิธีล็อกอินไว้เตือนตอนกลับมาเปิด modal ใหม่ (LIN สั่ง 2026-07-25) — เอาจาก Supabase ก่อน (แม่นสุด)
+      // ถ้ายังไม่มี (บาง edge case) ค่อย fallback ไปใช้ pendingProvider ที่เพิ่งกดไป
+      var actualProvider = (loginUser.app_metadata && loginUser.app_metadata.provider) || pendingProvider;
+      saveLastProvider(actualProvider);
+    }
+    if (publicLoginOnly) return;
+    if (API.user && window.GAME_ACCOUNT && GAME_ACCOUNT.sync) {
+      try { GAME_ACCOUNT.sync(sb, API.user.id); } catch (e) {}
+    }
+    // 🆕 2026-08-11: คลังคำ (單字庫) sync ข้ามเครื่อง — เกาะจุดเดียวกับ GAME_ACCOUNT.sync
+    //   ใช้ client + ด่านกันยิงซ้ำ (lastAdaptiveUserId) ชุดเดียวกัน ไม่สร้างระบบ session ใหม่
+    //   ⚠️ เรียก "ทุกครั้ง" ไม่ใส่ if (API.user) เพราะตอนล็อกเอาท์ต้องส่ง uid = null เข้าไป
+    //      เพื่อให้ WordVault เลิกเขียนขึ้นเซิร์ฟเวอร์ (ถ้าไม่ส่ง จะค้าง session เก่าไว้)
+    //      ส่ง null = กลับไปทำงานแบบ local เหมือนเดิม ไม่ลบคำในเครื่องทิ้ง
+    if (window.WordVault && WordVault.sync) {
+      try { WordVault.sync(sb, uid); } catch (e) {}
+    }
+    if (window.SentenceVault && SentenceVault.sync) {
+      try { SentenceVault.sync(sb, uid); } catch (e) {}
+    }
+    if (window.LegoVault && LegoVault.sync) {
+      try { LegoVault.sync(sb, uid); } catch (e) {}
+    }
+    loadAdaptiveHistory(); // 2026-07-13 Lin：ล็อกอิน/สลับบัญชี → โหลดประวัติคำพลาดของเกมนี้ใหม่
+  }
+
+  // ── ฝึกจุดอ่อนอัตโนมัติ (75/25) — ก็อปแนวคิดจาก adaptive.js ของเกมเสียง มาใช้กับอ่าน/พิมพ์/เรียงคำ/ต่อประโยค ──
+  // ดึงจาก reading_sessions.wrong_items เฉพาะเกมปัจจุบัน (แยกกันเป็นเกม ๆ ไป ไม่ปนกัน)
+  var ADAPTIVE_RATIO = 0.75;      // 75% คำ/ประโยคที่ยังไม่เคยพลาด (หรือพลาดน้อย) 25% คำที่พลาดบ่อย
+  var ADAPTIVE_HISTORY_LIMIT = 50;
+  var adaptiveWrongCounts = {};   // { th: จำนวนครั้งที่พลาด }
+  var adaptiveLoaded = false;
+  var adaptiveRequestSequence = 0;
+  var latestAdaptiveRequest = 0;
+
+  // 2026-07-13 Lin: เพิ่ม fallback กันคอลัมน์ game/wrong_items ยังไม่มีใน Supabase (รอรัน SQL migration)
+  // เดิม: ถ้า SELECT error (เช่น column game does not exist, HTTP 400) โค้ดเก่ายังตั้ง adaptiveLoaded = true
+  // ทั้งที่ไม่ได้ข้อมูลจริงเลย (บั๊ก) — ตอนนี้แยก apply()/disable() ให้ error จริงไม่ทำให้เข้าใจผิดว่าพร้อมใช้
+  // จงใจไม่ fallback ไปคิวรีแบบไม่กรอง game (จะผสมคำผิดข้ามเกม ความหมายผิด) — ปิดฟีเจอร์ทบทวนไปก่อนจนกว่าจะมีคอลัมน์ครบ
+  function loadAdaptiveHistory() {
+    var requestId = ++adaptiveRequestSequence;
+    latestAdaptiveRequest = requestId;
+    if (!API.user) { adaptiveLoaded = false; adaptiveWrongCounts = {}; return; }
+    var ownerId = String(API.user.id);
+    var ownerEpoch = Number(window.SITE_AUTH && SITE_AUTH.learningOwnerEpoch) || 0;
+    function ownerStillCurrent() {
+      var currentId = API.user && String(API.user.id) || '';
+      var currentEpoch = Number(window.SITE_AUTH && SITE_AUTH.learningOwnerEpoch) || 0;
+      if (requestId !== latestAdaptiveRequest || currentId !== ownerId || currentEpoch !== ownerEpoch) return false;
+      try {
+        return !!(window.PHASE1_ACCOUNT_BOUNDARY &&
+          localStorage.getItem(PHASE1_ACCOUNT_BOUNDARY.ownerKey) === ownerId);
+      } catch (e) { return false; }
+    }
+    function apply(res) {
+      adaptiveWrongCounts = {};
+      if (res && res.data) {
+        res.data.forEach(function (row) {
+          (row.wrong_items || []).forEach(function (w) {
+            var key = w && w.th; if (!key) return;
+            var wrongN = Number(w.wrong);
+            if (!(wrongN > 0)) return; // correct evidence (เช่น Listening score detail) ไม่ใช่จุดอ่อน
+            adaptiveWrongCounts[key] = (adaptiveWrongCounts[key] || 0) + wrongN;
+          });
+        });
+      }
+      adaptiveLoaded = true;
+    }
+    function disable(msg) {
+      console.warn('[adaptive] history not available yet:', msg);
+      adaptiveLoaded = false;
+      adaptiveWrongCounts = {};
+    }
+    sb.from('reading_sessions')
+      .select('wrong_items')
+      .eq('user_id', ownerId)
+      .eq('game', pageGame())
+      .order('created_at', { ascending: false })
+      .limit(ADAPTIVE_HISTORY_LIMIT)
+      .then(function (res) {
+        if (!ownerStillCurrent()) return;
+        if (res && !res.error) { apply(res); }
+        else { disable(res && res.error && res.error.message || 'unknown error'); }
+      }, function (e) {
+        if (!ownerStillCurrent()) return;
+        disable(e && e.message || 'เครือข่ายผิดพลาด');
+      });
+  }
+  function rgShuffle(a) {
+    a = a.slice();
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+  function rgSample(arr, n) { return rgShuffle(arr).slice(0, n); }
+  // pool = array ของ item ที่มี .th (คำ/ประโยค) — คืน array ของ item ที่เลือกแล้ว (ไม่ใช่แค่ index)
+  API.adaptiveReady = function () { return adaptiveLoaded && Object.keys(adaptiveWrongCounts).length > 0; };
+  API.pickAdaptive = function (pool, n) {
+    pool = (pool || []).slice();
+    n = n || pool.length;
+    if (pool.length <= n || !API.adaptiveReady()) return rgSample(pool, n);
+    var weak = pool.filter(function (w) { return w && w.th && adaptiveWrongCounts[w.th]; })
+                   .sort(function (a, b) { return (adaptiveWrongCounts[b.th] || 0) - (adaptiveWrongCounts[a.th] || 0); });
+    var strong = pool.filter(function (w) { return !(w && w.th && adaptiveWrongCounts[w.th]); });
+    var nWeak = Math.min(weak.length, Math.round(n * (1 - ADAPTIVE_RATIO)));
+    var nStrong = n - nWeak;
+    var res = rgSample(weak, nWeak).concat(rgSample(strong, nStrong));
+    if (res.length < n) {
+      var rest = pool.filter(function (w) { return res.indexOf(w) < 0; });
+      res = res.concat(rgSample(rest, n - res.length));
+    }
+    return rgShuffle(res).slice(0, n);
+  };
+
+  // ── ส่งหลักฐานรอบนี้ให้ score-submit ตรวจ (เฉพาะตอนล็อกอิน) + sync ดาว/streak ──
+  // S29 (2026-08-15): browser ไม่มีสิทธิ์เขียน score table โดยตรงอีกต่อไป
+  // user_id/created_at/คะแนน authoritative มาจาก JWT + server validation เท่านั้น
+  // RELIABILITY: โชว์ผลจริงเสมอ (toast) — สำเร็จจริงค่อยขึ้น ✅, พังต้องเตือน ห้ามเงียบ
+  var ADMIN_EMAIL = 'mr.taihualin@gmail.com';
+
+  function saveToast(msg, ok) {
+    try {
+      var old = document.getElementById('rg-score-toast');
+      if (old) old.remove();
+      var d = document.createElement('div');
+      d.id = 'rg-score-toast';
+      d.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:99999;' +
+        'background:' + (ok ? '#2d7a2d' : '#8b2020') + ';color:#fff;border-radius:20px;' +
+        'padding:8px 18px;font-size:13px;font-family:"Noto Sans TC",sans-serif;' +
+        'box-shadow:0 4px 16px rgba(0,0,0,0.25);white-space:nowrap;pointer-events:none;';
+      d.textContent = msg;
+      document.body.appendChild(d);
+      setTimeout(function () { if (d.parentNode) d.remove(); }, 3500);
+    } catch (e) {}
+  }
+
+  function scoreSubmissionId() {
+    try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
+    var bytes = new Uint8Array(16);
+    try { crypto.getRandomValues(bytes); } catch (e) { for (var i=0;i<16;i++) bytes[i]=(Math.random()*256)|0; }
+    bytes[6] = (bytes[6] & 15) | 64;
+    bytes[8] = (bytes[8] & 63) | 128;
+    var h = Array.prototype.map.call(bytes, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+    return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);
+  }
+
+  // proof = {difficulty, items, roundBonus, srsBonus}; Edge derives private mirror items from validated evidence.
+  function saveScore(score, games, game, wrongItems, proof) {
+    if (publicLoginOnly) return null;
+    if (!API.user) return null; // ยังไม่ล็อกอิน → ไม่เซฟ (ไม่มีคิวค้าง — GA4 ยังนับภาพรวมให้)
+    // Phase 1 fail-closed: Challenge is Paid-only and has no Leaderboard. Paid runtime is not launched.
+    if (game === 'challenge' || pageGame() === 'challenge') return null;
+    // v11 (LIN 2026-07-25, audit): ใช้ window.isSiteAdmin (ตรวจทั้ง email + user id) แทนเช็ค email อย่างเดียว
+    //   กัน Facebook/LINE ของแอดมินเอง (อาจไม่มี email) หลุดรอดเข้า leaderboard ตอนทดสอบ
+    if ((window.isSiteAdmin && window.isSiteAdmin(API.user)) || (API.user.email || '').toLowerCase() === ADMIN_EMAIL) {
+      console.info('[board] admin account — score not saved (excluded from leaderboard)');
+      return null;
+    }
+    var gm = game === 'tone_finder' ? 'tone' : game;
+    if (['tone','reading','listening','typing','word_order'].indexOf(gm) < 0) return null;
+    if (!proof || !Array.isArray(proof.items) || !proof.items.length) {
+      saveToast('⚠️ 分數未儲存：缺少驗證資料', false);
+      return null;
+    }
+    var submittedScore = Number(score);
+    if (!Number.isFinite(submittedScore) || !Number.isInteger(submittedScore)) {
+      saveToast('⚠️ 分數未儲存：格式不正確', false);
+      return null;
+    }
+    var payload = {
+      submission_id: scoreSubmissionId(),
+      game: gm,
+      difficulty: proof.difficulty,
+      client_score: submittedScore,
+      evidence: {
+        items: proof.items,
+        roundBonus: Number(proof.roundBonus) || 0,
+        srsBonus: Number(proof.srsBonus) || 0
+      }
+    };
+    function onFail(msg) {
+      console.warn('[board] save failed:', msg);
+      saveToast('⚠️ 分數儲存失敗：' + msg, false);
+      try { if (window.gtag) gtag('event','score_save_fail',{category:'game', reason: String(msg).slice(0, 90), game: gm }); } catch (e) {}
+    }
+    function requestScoreSubmit() {
+      if (!window.NetworkGuard || !NetworkGuard.request) {
+        return Promise.reject(new Error('網路保護尚未就緒'));
+      }
+      return NetworkGuard.request(function () {
+        return sb.functions.invoke('score-submit', { body: payload });
+      }, 'score-submit', {}, 12000, null);
+    }
+    function submit(attempt) {
+      try {
+        requestScoreSubmit().then(function (res) {
+          if (!res.error && res.data && res.data.ok) {
+            saveToast('✅ 分數已驗證並儲存 +' + res.data.score + ' 分', true);
+            return;
+          }
+          if (attempt === 0) { setTimeout(function () { submit(1); }, 800); return; }
+          onFail((res.error && res.error.message) || (res.data && res.data.error) || '伺服器驗證失敗');
+        }, function (e) {
+          if (attempt === 0) { setTimeout(function () { submit(1); }, 800); return; }
+          onFail(e && e.message || '網路錯誤');
+        });
+      } catch (e) { onFail(e && e.message || String(e)); }
+    }
+    submit(0);
+    if (window.GAME_ACCOUNT && GAME_ACCOUNT.sync) { try { GAME_ACCOUNT.sync(sb, API.user.id); } catch (e) {} }
+    return payload.submission_id;
+  }
+
+  // ── session กลาง: ใช้ window.SITE_AUTH (auth-widget.js) ถ้ามี — client เดียวกับทุกหน้า ──
+  // มี fallback (client+listener ของตัวเอง) เผื่อ auth-widget.js โหลดไม่ทัน/พลาด กันเกมพัง LIN 2026-07-03
+  try {
+    if (window.SITE_AUTH) {
+      window.SITE_AUTH.onChange(setUser);
+    } else {
+      sb.auth.getSession().then(function (r) { setUser(r && r.data && r.data.session && r.data.session.user); }, function () {});
+      sb.auth.onAuthStateChange(function (_e, s) { setUser(s && s.user); });
+    }
+  } catch (e) {}
+
+  // ── v14 (LIN 2026-07-26): เช็ค error ที่ Supabase ส่งกลับมาทาง URL หลัง OAuth redirect ──
+  // เดิมเช็ค error ได้แค่ "ก่อน" redirect (ตอน signInWithOAuth() เอง reject) เท่านั้น
+  // ถ้า Supabase ฝั่ง server แลก code/token กับผู้ให้บริการ (Google/Facebook/LINE) แล้วพัง
+  // (เช่น ตั้งค่า Client ID/Secret ผิด, nonce ไม่ตรง) Supabase จะ redirect กลับมาที่หน้าเว็บ
+  // พร้อม ?error=...&error_description=... ต่อท้าย URL — โค้ดเดิมไม่มีใครอ่านค่านี้เลย
+  // ผู้เล่นกดล็อกอินจบ (ผ่านหน้ายินยอมของผู้ให้บริการแล้ว) แต่กลับมาเว็บแล้ว "ไม่ขึ้นอะไรเลย"
+  // เงียบสนิท ขัดกฎ "ห้ามพังเงียบ" — พบจริงจาก Lin ทดสอบ LINE 2026-07-26 เพิ่มจุดนี้ให้ครบวงจร
+  function stripAuthParams(paramsStr) {
+    if (!paramsStr) return '';
+    var p = new URLSearchParams(paramsStr);
+    ['error', 'error_description', 'error_code', 'code', 'state', 'access_token', 'refresh_token',
+     'expires_in', 'token_type', 'provider_token', 'provider_refresh_token'].forEach(function (k) { p.delete(k); });
+    return p.toString();
+  }
+  function checkOAuthReturnError() {
+    try {
+      var qs = new URLSearchParams(location.search || '');
+      var hs = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+      var err = qs.get('error') || hs.get('error') || qs.get('error_code') || hs.get('error_code');
+      if (!err) return;
+      var desc = qs.get('error_description') || hs.get('error_description') || err;
+      var pendingProvider = takePendingLogin() || 'unknown';
+      trackLogin('login_fail', pendingProvider, { reason: String(desc).slice(0, 90), stage: 'redirect_back' });
+      // ล้าง error ออกจาก URL กันโชว์ค้างตอน refresh/แชร์ลิงก์ (คง query/hash อื่นที่ไม่เกี่ยวไว้)
+      try {
+        var newSearch = stripAuthParams(location.search.replace(/^\?/, ''));
+        var newHash = stripAuthParams(location.hash.replace(/^#/, ''));
+        history.replaceState(null, '', location.pathname + (newSearch ? '?' + newSearch : '') + (newHash ? '#' + newHash : ''));
+      } catch (e) {}
+      openGate();
+      setMsg('登入失敗：' + decodeURIComponent(String(desc)).slice(0, 120) + '（請改用上面的 Email 驗證碼再試一次）', true);
+    } catch (e) {}
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { render(); checkOAuthReturnError(); });
+  } else { render(); checkOAuthReturnError(); }
+})();

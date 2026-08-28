@@ -12,6 +12,7 @@
     "auth": false,
     "gameContent": "local-non-personal-fixture",
     "scoreWrites": false,
+    "browserStorage": "isolated-memory",
     "externalNetwork": false
   },
   "responsiveContract": {

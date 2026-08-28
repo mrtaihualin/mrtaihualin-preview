@@ -6,6 +6,7 @@
   "previewRepository": "mrtaihualin/mrtaihualin-preview",
   "previewBase": "a4b42056d2eff1c342d201c2150919c8a942364a",
   "path": "/pr98-login-ui-e21e091/",
+  "assetRevision": 2,
   "runtime": {
     "personalData": false,
     "supabase": false,

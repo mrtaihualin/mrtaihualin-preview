@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <script src="preview-ui-guard.js"></script><script src="preview-supabase-stub.js"></script><script src="preview-supabase-config.js"></script>
+  <link rel="stylesheet" href="css/login-surface.css?v=1">
+  <title>Result UI Preview — PR #98</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f7f1e5;color:#3d2a0b;font-family:system-ui,"Noto Sans TC",sans-serif}.wrap{width:min(760px,calc(100% - 28px));margin:24px auto 54px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center}.top a{color:#8b6310;font-weight:800}.tag{padding:6px 10px;border-radius:999px;background:#392708;color:#fff8e8;font-size:12px;font-weight:800}.result{margin:18px 0;padding:22px;border:1px solid #ead8b5;border-radius:22px;background:#fff;box-shadow:0 10px 24px rgba(94,61,5,.07)}h1{font-size:28px}h2{margin:0;color:#8b6310}.score{font-size:38px;font-weight:900;color:#9b6a08;margin:12px 0 2px}.summary{color:#74664d}.mrt-login-surface{width:min(100%,640px);height:92px;margin:18px auto 0}.mrt-login-button{min-width:176px;min-height:54px;padding:12px 28px;border:0;border-radius:999px;background:linear-gradient(135deg,#9b6a08,#d6a12c);color:#fff;box-shadow:0 8px 20px rgba(139,99,16,.28);font:800 20px/1 "Noto Sans TC",sans-serif}.mrt-login-howto{min-width:146px;min-height:54px;border:0;border-radius:999px;background:#f6edda;color:#6f4d0b;font:800 19px/1 "Noto Sans TC",sans-serif}@media(max-width:560px) and (orientation:portrait){.result{padding:17px}.mrt-login-surface{height:auto;min-height:82px}.mrt-login-button{min-width:142px;min-height:48px;font-size:17px}.mrt-login-howto{min-width:122px;min-height:48px;font-size:16px}}@media(orientation:landscape) and (max-width:1024px) and (max-height:600px){.mrt-login-surface{display:none!important}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="top"><a href="index.html">← Preview Index</a><span class="tag">MOCK RESULT · NO DATA</span></div>
+    <h1>遊戲結束畫面 — UI Preview</h1>
+    <p>ตัวอย่างสถานะผลจบเกมด้วยข้อมูลจำลอง ไม่มีการอ่านหรือเขียนคะแนนจริง</p>
+    <div id="results"></div>
+  </main>
+  <script>
+  (function(){
+    var games=[['🎵','Tone'],['✍️','Reading'],['🎧','Listening'],['⌨️','Typing'],['🧩','Word Order'],['🧱','Lego']];
+    document.getElementById('results').innerHTML=games.map(function(g){return '<section class="result"><h2>'+g[0]+' '+g[1]+'</h2><div class="score">80</div><div class="summary">本輪完成 · 預覽分數（模擬資料）</div><div class="mrt-login-surface" data-login-surface="game"><button class="mrt-login-button" type="button">🔑 登入</button><button class="mrt-login-howto" type="button">📖 玩法</button></div></section>';}).join('');
+    document.addEventListener('click',function(e){if(e.target.closest('.mrt-login-button')){e.preventDefault();var n=document.getElementById('preview-result-modal');if(!n){n=document.createElement('div');n.id='preview-result-modal';n.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(28,18,4,.82);display:flex;align-items:center;justify-content:center;padding:20px';n.innerHTML='<div style="width:min(420px,100%);background:#fff;border-radius:20px;padding:24px;text-align:center"><h2>登入帳號</h2><p>UI Preview เท่านั้น — ปิดผู้ให้บริการและการส่งข้อมูลจริง</p><button type="button" onclick="this.closest(\'#preview-result-modal\').remove()" style="padding:10px 20px;border:0;border-radius:999px;background:#9b6a08;color:#fff;font-weight:800">關閉</button></div>';document.body.appendChild(n);}}},true);
+  })();
+  </script>
+</body>
+</html>

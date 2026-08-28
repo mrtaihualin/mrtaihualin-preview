@@ -1,0 +1,27 @@
+{
+  "kind": "protected-ui-only-snapshot",
+  "sourceRepository": "mrtaihualin/mrtaihualin.github.io",
+  "sourcePullRequest": 98,
+  "sourceHead": "496b68dd967dd253a1c2f6f18c9cf32f5b91978f",
+  "previewRepository": "mrtaihualin/mrtaihualin-preview",
+  "previewBase": "46f6764f7872963a2a5d9a73d33d244258ee694b",
+  "path": "/shared-page-framework-496b68d/",
+  "assetRevision": 4,
+  "runtime": {
+    "personalData": false,
+    "supabase": false,
+    "auth": false,
+    "gameContent": "local-non-personal-fixture",
+    "scoreWrites": false,
+    "browserStorage": "isolated-memory",
+    "externalNetwork": false
+  },
+  "responsiveContract": {
+    "desktopLogin": true,
+    "portraitLogin": true,
+    "mobileLandscapeLogin": false,
+    "core5ToneGeometry": true,
+    "legoLowerGameplayUnchanged": true
+  },
+  "generatedOn": "2026-08-28"
+}

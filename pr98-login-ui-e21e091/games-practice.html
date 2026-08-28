@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<script src="preview-ui-guard.js"></script>
+<script src="preview-supabase-stub.js"></script>
+<script src="preview-supabase-config.js"></script>
+<!-- Google tag (gtag.js) -->
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  // Consent Mode v2 — ปฏิเสธเป็นค่าเริ่มต้นจนกว่าผู้ใช้จะกดยอมรับ (แทรกอัตโนมัติ scripts/apply-cookie-consent.js)
+  var savedConsent = localStorage.getItem('cookieConsent');
+  gtag('consent', 'default', { analytics_storage: savedConsent === 'granted' ? 'granted' : 'denied', ad_storage: 'denied' });
+  gtag('js', new Date());
+  gtag('config', 'G-DKVQE30982');
+  window.GA_CATEGORY='game';
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DKVQE30982"></script>
+<!-- Microsoft Clarity -->
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "xkbihw56tf");
+    // บอก Clarity ว่ายังไม่ได้รับความยินยอม จนกว่าจะกดยอมรับ (แทรกอัตโนมัติ apply-cookie-consent.js)
+    var claritySavedConsent = localStorage.getItem('cookieConsent');
+    window.clarity('consentv2', { ad_Storage: 'denied', analytics_Storage: claritySavedConsent === 'granted' ? 'granted' : 'denied' });
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<!-- 🆕 2026-08-10: หน้าใหม่ — แยกออกมาจาก games.html ตาม Decision (IA reorg: games.html เหลือ 3 การ์ดหลัก, 5 เกมเล็กย้ายมาที่นี่) -->
+<title>泰語遊戲練習室 — 5 款免費泰語練習遊戲 | 泰華眼裡的泰語教學</title>
+<meta name="description" content="泰語聲調、拼讀、聽力、打字、語序練習室，5 款免費遊戲邊玩邊學泰文，免費試玩。">
+<link rel="canonical" href="https://mrtaihualin.com/games-practice.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="泰華眼裡的泰語教學">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="泰語遊戲練習室 — 5 款免費泰語練習遊戲">
+<meta property="og:description" content="泰語聲調、拼讀、聽力、打字、語序練習室，5 款免費遊戲邊玩邊學泰文，免費試玩。">
+<meta property="og:url" content="https://mrtaihualin.com/games-practice.html">
+<meta property="og:image" content="https://mrtaihualin.com/assets/share-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="泰語遊戲練習室 — 5 款免費泰語練習遊戲">
+<meta name="twitter:description" content="泰語聲調、拼讀、聽力、打字、語序練習室，5 款免費遊戲邊玩邊學泰文，免費試玩。">
+<meta name="twitter:image" content="https://mrtaihualin.com/assets/share-card.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/shared.css?v=18">
+<style>
+  /* ══════════════════════════════════════════════════════════════════
+     🎮 GH DESIGN SYSTEM — ใช้ร่วมกัน games.html + games-practice.html
+     (คัดลอกก้อนนี้ไปทั้งดุ้นทุกครั้งที่แก้ ให้ 2 หน้าเหมือนกันเป๊ะ — ตามแพทเทิร์นเดิมของเว็บที่
+     games-challenge.html คัดลอก CSS มาจาก reading-game.html ตรงๆ)
+     2026-08-10: max-width เปลี่ยนจาก 960→1080 ให้ตรงกับ .section-wrap มาตรฐานของเว็บ (css/shared.css)
+     แทนที่จะเดาค่าใหม่ · text-align เปลี่ยนจาก center→left ตาม Decision (headline/desc/card grid ต้องชิดซ้ายแนวเดียวกัน)
+     ══════════════════════════════════════════════════════════════════ */
+  .gh-wrap{max-width:1080px;margin:0 auto;padding:44px 22px 72px;font-family:'Noto Sans TC',sans-serif;text-align:left;}
+  .gh-wrap h1{font-family:'Noto Serif TC',serif;font-size:clamp(26px,5vw,38px);font-weight:900;color:#2d2a22;margin:0 0 8px;text-align:left;}
+  .gh-sub{font-size:16px;color:#5c5648;margin-bottom:30px;text-align:left;}
+  /* ← 返回 — ก็อปสไตล์จาก .vault-back (vault.html) ให้เหมือนหน้าเกมอื่นทุกหน้า: ชิดซ้าย, priority ต่ำกว่าหัวข้อ, ไม่ใช่ CTA ใหญ่ */
+  .gh-back{font-size:13px;color:#8B6310;text-decoration:none;display:inline-flex;align-items:center;gap:4px;margin-bottom:14px;}
+  .gh-back:hover{text-decoration:underline;}
+
+  .gh-grid{display:grid;grid-template-columns:repeat(1,1fr);gap:14px;}
+  @media(min-width:640px){.gh-grid{grid-template-columns:repeat(3,1fr);}}
+  .gh-card{position:relative;background:#fff;border:1.5px solid #e0d2a8;border-radius:18px;padding:18px 16px;text-decoration:none;color:inherit;display:flex;flex-direction:row;align-items:center;text-align:left;gap:14px;box-shadow:0 4px 20px rgba(90,62,10,.08);transition:transform .15s,box-shadow .15s;height:100%;}
+  .gh-card:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(90,62,10,.16);}
+  .gh-card:focus-visible{outline:3px solid #C8973A;outline-offset:2px;}
+  .gh-emoji{font-size:40px;line-height:1;flex-shrink:0;}
+  /* 🆕 2026-08-10 (polish): บังคับ title=1 บรรทัด, desc=สูงสุด 2 บรรทัดแต่ "จองพื้นที่คงที่" เสมอ
+     (min-height เท่ากับ 2 บรรทัดพอดี) เพื่อให้ปุ่ม action อยู่ตำแหน่งเดียวกันทุกใบในแถวเดียวกัน
+     ไม่ว่าข้อความจริงจะสั้นแค่ไหน — ไม่แตะ/ไม่เปลี่ยนข้อความ description เดิมเลย แก้แค่ CSS */
+  .gh-title{font-family:'Noto Serif TC',serif;font-size:17px;font-weight:900;color:#5a3e10;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+  .gh-desc{font-size:12.5px;color:#8b6310;line-height:1.5;min-height:2.25em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .gh-go{margin-top:4px;background:linear-gradient(135deg,#e8a020,#d85a30);color:#fff;font-weight:700;font-size:13px;padding:7px 18px;border-radius:999px;display:inline-block;}
+  .gh-body{display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:0;width:100%;}
+  .gh-soon{opacity:.55;cursor:default;}
+  .gh-soon:hover{transform:none;box-shadow:0 4px 20px rgba(90,62,10,.08);}
+  .gh-soon .gh-go{background:#d8d0c0;}
+  .gh-badge{position:absolute;top:-9px;right:12px;background:#8B6310;color:#F3E4C2;font-size:10px;font-weight:900;padding:3px 9px;border-radius:999px;}
+  .gh-section-label{font-family:'Noto Serif TC',serif;font-size:18px;font-weight:900;color:#5a3e10;margin:36px 0 14px;text-align:left;}
+
+  /* 🆕 2026-08-10 — 3 การ์ดหลักของ games.html (泰語遊戲練習室/綜合挑戰/造句練習)
+     เท่ากันทุกมิติ: ความสูง/icon size/padding/radius/border/shadow — ห้ามให้ใบไหนเด่นกว่าใบอื่น */
+  .gh-main-grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:4px;}
+  @media(min-width:640px){.gh-main-grid{grid-template-columns:repeat(3,1fr);}}
+  .gh-main-card{position:relative;background:#fff;border:1.5px solid #e0d2a8;border-radius:18px;padding:24px 20px;text-decoration:none;color:inherit;display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:8px;box-shadow:0 4px 20px rgba(90,62,10,.08);transition:transform .15s,box-shadow .15s;height:100%;}
+  .gh-main-card:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(90,62,10,.16);}
+  .gh-main-card:focus-visible{outline:3px solid #C8973A;outline-offset:2px;}
+  .gh-main-icon{font-size:40px;line-height:1;}
+  .gh-main-title{font-family:'Noto Serif TC',serif;font-size:18px;font-weight:900;color:#5a3e10;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+  .gh-main-desc{font-size:13px;color:#8b6310;line-height:1.5;flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .gh-main-action{margin-top:4px;background:linear-gradient(135deg,#e8a020,#d85a30);color:#fff;font-weight:700;font-size:13px;padding:7px 18px;border-radius:999px;display:inline-block;}
+  /* 開發中 — ต้องดูออกชัดว่าใช้งานไม่ได้ แต่ไม่ใช่ UI เสีย: ไม่มี hover-lift, ไม่ใช่ <a>, ปุ่มสีเทาไม่ใช่ gradient (ไม่ทำ active หลอก) */
+  .gh-main-card.gh-disabled{cursor:default;opacity:.6;}
+  .gh-main-card.gh-disabled:hover{transform:none;box-shadow:0 4px 20px rgba(90,62,10,.08);}
+  .gh-main-status{margin-top:4px;background:#d8d0c0;color:#6b6b6b;font-weight:700;font-size:13px;padding:7px 18px;border-radius:999px;display:inline-block;}
+
+  /* secondary content (預約體驗課 / 排行榜 / 單字庫) — priority ต่ำกว่าการ์ดหลักเสมอ ห้ามแข่งกับ 3 การ์ดบน
+     สีในบล็อกนี้ reuse token ที่มีอยู่แล้วในหน้า (#e0d2a8 border เดิม / --cream / --gold-light) แทนการเดาสีใหม่ */
+  .gh-secondary{margin-top:40px;padding-top:24px;border-top:1px solid #e0d2a8;}
+  .gh-cta-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;background:var(--cream,#FAF4E8);border:1px solid #e0d2a8;border-radius:12px;padding:14px 18px;margin-bottom:18px;text-decoration:none;color:inherit;}
+  .gh-cta-bar:hover{background:var(--gold-light,#F3E4C2);}
+  .gh-cta-bar:focus-visible{outline:3px solid #C8973A;outline-offset:2px;}
+  .gh-cta-bar-text{font-size:13.5px;color:#5c5648;flex:1;min-width:180px;}
+  .gh-cta-bar-text b{color:#5a3e10;}
+  .gh-cta-bar-go{background:linear-gradient(135deg,#8B6310,#C8973A);color:#fff;font-weight:700;font-size:12.5px;padding:7px 16px;border-radius:999px;white-space:nowrap;flex-shrink:0;}
+  .gh-links-row{font-size:13px;color:#8b6310;line-height:2;}
+  .gh-links-row a{color:#8b6310;font-weight:700;text-decoration:underline;text-underline-offset:3px;}
+  .gh-links-row .sep{color:#b0a080;font-weight:400;}
+
+  /* 🔍 Search MVP (2026-08-09) — กล่องค้นหาเฉพาะเกม (เฉพาะ games.html เท่านั้น ไม่มีในหน้า games-practice.html) */
+  .gh-search-wrap{max-width:600px;margin:0 0 30px;text-align:left;}
+  .gh-search-prompt{font-size:15px;font-weight:700;color:#5a3e10;margin-bottom:10px;text-align:left;}
+  .gh-search-row{display:flex;gap:8px;}
+  .gh-search-input{flex:1;padding:13px 16px;border:1.5px solid #e0d2a8;border-radius:6px;font-family:'Noto Sans TC',sans-serif;font-size:13.5px;}
+  .gh-search-input:focus{outline:none;border-color:#C8973A;}
+  .gh-search-btn{padding:13px 22px;background:#C8973A;color:#1C1C1C;border:none;border-radius:6px;font-weight:900;font-size:13.5px;cursor:pointer;white-space:nowrap;}
+  .gh-search-btn:hover{background:#b07820;}
+  .gh-search-result{display:none;margin-top:14px;background:#fff;border:1.5px solid #e0d2a8;border-radius:12px;padding:16px 18px;}
+  .gh-search-primary{font-family:'Noto Serif TC',serif;font-size:15px;font-weight:900;color:#5a3e10;margin-bottom:4px;}
+  .gh-search-reason{font-size:12.5px;color:#8b6310;margin-bottom:10px;}
+  .gh-search-secondary{font-size:12px;color:#8b8060;margin-top:10px;padding-top:10px;border-top:1px solid #f0e6cc;}
+  .gh-search-secondary a{color:#8b6310;font-weight:700;text-decoration:underline;}
+  .gh-search-empty{font-size:13px;color:#8b8060;line-height:1.8;}
+  @media(max-width:600px){.gh-search-row{flex-direction:column;} .gh-search-btn{width:100%;}}
+</style>
+<!-- 🆕 2026-08-10 (polish): ย้าย ItemList 5 เกมมาจาก games.html ตาม visible IA ใหม่ (5 เกมอยู่หน้านี้จริง)
+     + เพิ่ม 聽力 (listening-game.html) ที่ตกหล่นจาก ItemList เดิม — description ทุกอันใช้ของเดิมที่มีอยู่แล้ว
+     (4 อันก็อปจาก games.html ต้นฉบับตรงๆ · 聽力 ใช้ desc จาก data/search-index.js entry game-listening ห่อ
+     ด้วย template ประโยคเดียวกับอีก 4 อัน ไม่ได้แต่ง learning content ใหม่) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "泰語遊戲練習室",
+  "description": "泰語聲調、拼讀、聽力、打字、語序練習室，5 款免費遊戲邊玩邊學泰文，免費試玩。",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "item": {
+        "@type": "WebApplication",
+        "additionalType": "https://schema.org/LearningResource",
+        "name": "泰語聲調練習室",
+        "description": "免費泰語聲調練習室：選擇等級與主題，練習泰文聲調與發音。專為台灣人設計的泰語學習工具。",
+        "url": "https://mrtaihualin.com/tone-finder.html",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web",
+        "inLanguage": ["th", "zh-TW"],
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "TWD" },
+        "provider": { "@type": "Organization", "name": "泰華眼裡的泰語教學", "url": "https://mrtaihualin.com/" }
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "item": {
+        "@type": "WebApplication",
+        "additionalType": "https://schema.org/LearningResource",
+        "name": "泰語拼讀練習室",
+        "description": "免費泰語拼讀練習室：把子音、母音、聲調、尾音一格一格拼成正確的字，邊玩邊學泰文拼讀規則。專為台灣人設計的泰語學習遊戲。",
+        "url": "https://mrtaihualin.com/reading-game.html",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web",
+        "inLanguage": ["th", "zh-TW"],
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "TWD" },
+        "provider": { "@type": "Organization", "name": "泰華眼裡的泰語教學", "url": "https://mrtaihualin.com/" }
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "item": {
+        "@type": "WebApplication",
+        "additionalType": "https://schema.org/LearningResource",
+        "name": "泰語聽力練習室",
+        "description": "免費泰語聽力練習室：聽發音選出來或打出來，練耳朵也練拼寫。專為台灣人設計的泰語學習遊戲。",
+        "url": "https://mrtaihualin.com/listening-game.html",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web",
+        "inLanguage": ["th", "zh-TW"],
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "TWD" },
+        "provider": { "@type": "Organization", "name": "泰華眼裡的泰語教學", "url": "https://mrtaihualin.com/" }
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "item": {
+        "@type": "WebApplication",
+        "additionalType": "https://schema.org/LearningResource",
+        "name": "泰語打字練習室",
+        "description": "免費泰語打字練習室：照泰文鍵盤（Kedmanee）打出單字，邊打字邊記住拼寫與鍵盤位置。專為台灣人設計的泰語學習遊戲。",
+        "url": "https://mrtaihualin.com/typing-game.html",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web",
+        "inLanguage": ["th", "zh-TW"],
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "TWD" },
+        "provider": { "@type": "Organization", "name": "泰華眼裡的泰語教學", "url": "https://mrtaihualin.com/" }
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 5,
+      "item": {
+        "@type": "WebApplication",
+        "additionalType": "https://schema.org/LearningResource",
+        "name": "泰語語序練習室",
+        "description": "免費泰語語序練習：把打散的詞語點回正確順序，練習泰語高級句型的語序邏輯。專為台灣人設計的泰語學習遊戲。",
+        "url": "https://mrtaihualin.com/word-order.html",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web",
+        "inLanguage": ["th", "zh-TW"],
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "TWD" },
+        "provider": { "@type": "Organization", "name": "泰華眼裡的泰語教學", "url": "https://mrtaihualin.com/" }
+      }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "首頁",
+      "item": "https://mrtaihualin.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "遊戲中心",
+      "item": "https://mrtaihualin.com/games.html"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "泰語遊戲練習室",
+      "item": "https://mrtaihualin.com/games-practice.html"
+    }
+  ]
+}
+</script>
+<script src="js/core/minimum-guest-launch.js?v=2"></script>
+</head>
+<body>
+<!--ANN-BAND:START--><!-- Login UI scope: no announcement strip. --><!--ANN-BAND:END-->
+
+<nav class="site-nav"><div class="nav-logo" onclick="goHome()"><span class="logo-accent">泰華</span><span class="logo-dim">眼裡的</span><span class="logo-main">泰語教學</span></div><ul class="nav-links"><li><a href="/games.html" class="nav-cta-secondary">🎮 遊戲</a></li><li><a href="javascript:void(0)" class="has-drop">學習資源</a><div class="nav-drop"><span class="nav-drop-label">泰語學習資源</span><a href="/content.html">📚 泰語學習資源</a><a href="/blog.html#articles">📝 泰語學習文章</a><a href="/resources.html#video-learning">🎬 影音學習</a><a href="/blog.html#selfstudy">📖 自學資源</a><span class="nav-drop-label">其他學習入口</span><a href="javascript:void(0)" onclick="openModal('modal-quiz')">程度測驗</a><a href="/index.html#problems">學習困境</a><a href="/community.html">🇹🇭 泰語學習心聲與提問</a></div></li><li><a href="javascript:void(0)" class="has-drop">更多</a><div class="nav-drop"><span class="nav-drop-label">課程與老師</span><a href="/index.html#teacher">關於老師</a><a href="/pricing.html#testimonials">學生回饋</a><a href="/pricing.html#pricing">費用方案</a><a href="/pricing.html#how">上課方式</a><span class="nav-drop-label">常見資訊</span><a href="/faq.html#faq">FAQ</a><a href="/faq.html#rules">上課須知</a><a href="/faq.html#feedback-section">分享經驗</a><span class="nav-drop-label">其他服務</span><a href="/page-services.html#tour-guide">🗺️ 導遊</a><a href="/page-services.html#drama">🎬 字幕翻譯</a><a href="/page-services.html#interpret">🎙️ 口譯</a><a href="/page-services.html#quote-form">📋 報價</a><div class="nav-drop-divider"></div><a href="javascript:void(0)" onclick="openModal('modal-contact')">聯絡我們</a></div></li><li><a href="javascript:void(0)" onclick="openModal('modal-line-qr')" class="nav-cta">免費試聽</a></li></ul><button class="nav-mobile-cta" onclick="openModal('modal-line-qr')">免費試聽</button><div class="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></div></nav><!--NAV-FIT:START--><script>(function(){try{function f(){var n=document.querySelector("nav.site-nav");if(!n)return;var l=n.querySelector(".nav-logo"),k=n.querySelector(".nav-links");if(!l||!k)return;n.classList.remove("nav-compact");k.style.cssText="";var cs=window.getComputedStyle(n);var pl=parseFloat(cs.paddingLeft)||0,pr=parseFloat(cs.paddingRight)||0;var avail=n.clientWidth-pl-pr;var need=l.scrollWidth+k.scrollWidth+12;if(need>avail){n.classList.add("nav-compact");}}window.__navFit=f;f();}catch(e){}})();</script><!--NAV-FIT:END-->
+
+<!-- 🗑️ 2026-08-10 (polish): เอา page-strip ออกตาม UX Decision — ตรวจแล้วไม่ได้ถูกควบคุมจาก generator/source-of-truth ใดๆ
+     (ไม่มีใน data/nav-template.js, scripts/generate-nav.js, scripts/check-nav-consistency.js เลย)
+     เป็น static HTML เขียนตรงในแต่ละหน้าเท่านั้น ลบมือได้ปลอดภัย ไม่มีความเสี่ยงถูก generator ใส่กลับมา
+     เอาออกเฉพาะ games.html + games-practice.html ตามที่ Lin สั่ง — หน้าอื่นยังมี page-strip เหมือนเดิม ไม่แตะ -->
+
+<main class="gh-wrap">
+  <!-- ← 返回遊戲中心 — ชิดซ้าย, priority ต่ำกว่าหัวข้อ, ไม่ใช่ CTA ใหญ่ (Decision 2026-08-10) -->
+  <a class="gh-back" href="games.html">← 返回遊戲中心</a>
+
+  <h1>🎮 泰語遊戲練習室</h1>
+  <p class="gh-sub">4 款 Guest 練習遊戲直接開始，聽力練習室即將開幕。</p>
+
+  <!-- 5 การ์ดเกม — ทางเลือกเท่าเทียมกัน ห้ามเกมไหนเด่นกว่าเกมอื่น (Decision 2026-08-10) -->
+  <div class="gh-grid">
+    <a class="gh-card" href="tone-finder.html" onclick="if(window.gtag)gtag('event','game_link_click',{category:'game',target:'tone_finder',from:'games_practice'})">
+      <div class="gh-emoji">🎵</div>
+      <div class="gh-body">
+        <div class="gh-title">泰語聲調練習室</div>
+        <div class="gh-desc">看字猜聲調，練耳朵也練發音，五個聲調不再混。</div>
+        <span class="gh-go">開始玩 →</span>
+      </div>
+    </a>
+
+    <a class="gh-card" href="reading-game.html" onclick="if(window.gtag)gtag('event','game_link_click',{category:'game',target:'reading_game',from:'games_practice'})">
+      <div class="gh-emoji">✍️</div>
+      <div class="gh-body">
+        <div class="gh-title">泰語拼讀練習室</div>
+        <div class="gh-desc">把音節拼起來讀對每個字，分組練習拼讀規則。</div>
+        <span class="gh-go">開始玩 →</span>
+      </div>
+    </a>
+
+    <div class="gh-card gh-soon" data-game-availability="coming-soon" role="status" aria-label="泰語聽力練習室 即將開幕">
+      <span class="gh-badge">即將開幕</span>
+      <div class="gh-emoji">🎧</div>
+      <div class="gh-body">
+        <div class="gh-title">泰語聽力練習室</div>
+        <div class="gh-desc">聽發音選出來或打出來，練耳朵也練拼寫。</div>
+        <span class="gh-go">即將開幕</span>
+      </div>
+    </div>
+
+    <a class="gh-card" href="typing-game.html" onclick="if(window.gtag)gtag('event','game_link_click',{category:'game',target:'typing_game',from:'games_practice'})">
+      <div class="gh-emoji">⌨️</div>
+      <div class="gh-body">
+        <div class="gh-title">泰語打字練習室</div>
+        <div class="gh-desc">照泰文鍵盤打出正確拼寫，練打字也練拼字。</div>
+        <span class="gh-go">開始玩 →</span>
+      </div>
+    </a>
+
+    <a class="gh-card" href="word-order.html" onclick="if(window.gtag)gtag('event','game_link_click',{category:'game',target:'word_order',from:'games_practice'})">
+      <div class="gh-emoji">🧩</div>
+      <div class="gh-body">
+        <div class="gh-title">泰語語序練習室</div>
+        <div class="gh-desc">把打散的詞語點回正確順序，專攻高級句型語序邏輯。</div>
+        <span class="gh-go">開始玩 →</span>
+      </div>
+    </a>
+  </div>
+</main>
+
+<footer>
+  專門教台灣人學泰文 · 專為台灣人設計的泰文課<span class="foot-sep"> · </span><br class="foot-mbr">泰華眼裡的泰語教學 · 累積超過 8,000 小時教學<br>
+  <span class="footer-legal"><a href="/terms.html" style="color:inherit;text-decoration:underline;">使用條款與著作權聲明</a><span aria-hidden="true"> · </span><a href="/privacy.html" style="color:inherit;text-decoration:underline;">隱私權政策</a></span><br>
+  <span class="footer-copyright">© 2026 mrtaihualin.com</span>
+</footer>
+
+<script src="data/nav-template.js?v=4"></script>
+<script src="js/core/shared.min.js?v=43"></script>
+
+<!-- Cookie consent banner (Google Consent Mode v2) — แทรกอัตโนมัติโดย scripts/apply-cookie-consent.js ห้ามแก้มือ ให้แก้ที่ต้นฉบับแล้วรันสคริปต์ใหม่ -->
+<div id="cookieConsentBanner" role="dialog" aria-label="Cookie 與分析設定" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:9999;
+  background:#FAF4E8;border-top:2px solid #8B6310;box-shadow:0 -4px 16px rgba(0,0,0,0.12);
+  padding:18px 20px;font-family:'Noto Sans TC',sans-serif;">
+  <div style="max-width:960px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:14px;justify-content:space-between;">
+    <p style="margin:0;color:#1C1C1C;font-size:14px;line-height:1.6;flex:1;min-width:240px;">
+      🍪 我們使用 <strong>Google Analytics</strong> 與 <strong>Microsoft Clarity</strong> 協助改善網站與遊戲體驗。
+      Microsoft Clarity 僅在您同意後使用分析 Cookie；若您拒絕，仍可能依 Consent API V2 進行有限的無 Cookie（cookieless）追蹤或衡量。詳見
+      <a href="/privacy.html" style="color:#8B6310;font-weight:700;text-decoration:underline;">隱私權政策</a>。
+    </p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button onclick="window.__cookieConsentDecide(false)"
+        style="background:#FAF4E8;color:#8B6310;border:1.5px solid #8B6310;border-radius:8px;
+        padding:9px 18px;font-weight:700;font-size:14px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;">
+        拒絕
+      </button>
+      <button onclick="window.__cookieConsentDecide(true)"
+        style="background:linear-gradient(135deg,#C8973A,#8B6310);color:#FAF4E8;border:none;border-radius:8px;
+        padding:9px 22px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;font-family:'Noto Sans TC',sans-serif;">
+        接受
+      </button>
+    </div>
+  </div>
+</div>
+<script>
+  window.__clearGaCookies = function() {
+    var names = document.cookie.split(';').map(function(part) {
+      return part.split('=')[0].trim();
+    }).filter(function(name) {
+      return name === '_ga' || name.indexOf('_ga_') === 0;
+    });
+    var hostname = window.location.hostname;
+    var domains = [];
+    if (hostname && hostname !== 'localhost' && !/^\d+(?:\.\d+){3}$/.test(hostname) && hostname.indexOf(':') === -1) {
+      domains.push(hostname);
+      var parts = hostname.split('.');
+      if (parts.length > 2) domains.push(parts.slice(-2).join('.'));
+    }
+    names.forEach(function(name) {
+      var expired = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;Max-Age=0;path=/';
+      document.cookie = expired;
+      domains.forEach(function(domain) {
+        document.cookie = expired + ';domain=' + domain;
+        document.cookie = expired + ';domain=.' + domain;
+      });
+    });
+  };
+  window.__clearGaCookiesAfterRevoke = function() {
+    window.__clearGaCookies();
+    window.setTimeout(window.__clearGaCookies, 0);
+    window.setTimeout(window.__clearGaCookies, 100);
+    window.setTimeout(window.__clearGaCookies, 1000);
+  };
+  window.__cookieConsentDecide = function(granted) {
+    localStorage.setItem('cookieConsent', granted ? 'granted' : 'denied');
+    if (typeof gtag === 'function') {
+      gtag('consent', 'update', { analytics_storage: granted ? 'granted' : 'denied' });
+    }
+    if (!granted) window.__clearGaCookiesAfterRevoke();
+    if (typeof window.clarity === 'function') {
+      window.clarity('consentv2', { ad_Storage: 'denied', analytics_Storage: granted ? 'granted' : 'denied' });
+      if (!granted) window.clarity('consent', false); // erase any cookies from an earlier grant
+    }
+    var __b = document.getElementById('cookieConsentBanner');
+    if (__b) __b.style.display = 'none';
+  };
+  // เปิด banner ขึ้นมาใหม่ได้ทุกเมื่อ (ใช้จากลิงก์ "Cookie 設定" ใน privacy.html)
+  window.__reopenCookieConsent = function() {
+    var __b = document.getElementById('cookieConsentBanner');
+    if (__b) __b.style.display = 'block';
+  };
+  if (!localStorage.getItem('cookieConsent')) {
+    var __b0 = document.getElementById('cookieConsentBanner');
+    if (__b0) __b0.style.display = 'block';
+  }
+  if (localStorage.getItem('cookieConsent') === 'denied') {
+    window.__clearGaCookiesAfterRevoke();
+  }
+</script>
+
+<nav id="bottom-nav"><a href="/index.html" class="bn-item"><span class="bn-icon">🏠</span><span class="bn-label">首頁</span></a><a href="javascript:void(0)" onclick="openModal('modal-line-qr')" class="bn-item bn-cta"><span class="bn-icon">📞</span><span class="bn-label">試聽</span></a><a href="/games.html" class="bn-item"><span class="bn-icon">🎮</span><span class="bn-label">遊戲</span></a></nav>
+</body>
+</html>

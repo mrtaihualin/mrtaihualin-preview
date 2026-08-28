@@ -1,0 +1,23 @@
+{
+  "kind": "protected-ui-only-snapshot",
+  "sourceRepository": "mrtaihualin/mrtaihualin.github.io",
+  "sourcePullRequest": 98,
+  "sourceHead": "e21e0915a8d18671a8a9af13badf2fe5934cc970",
+  "previewRepository": "mrtaihualin/mrtaihualin-preview",
+  "previewBase": "a4b42056d2eff1c342d201c2150919c8a942364a",
+  "path": "/pr98-login-ui-e21e091/",
+  "runtime": {
+    "personalData": false,
+    "supabase": false,
+    "auth": false,
+    "gameContent": "local-non-personal-fixture",
+    "scoreWrites": false,
+    "externalNetwork": false
+  },
+  "responsiveContract": {
+    "desktopLogin": true,
+    "portraitLogin": true,
+    "mobileLandscapeLogin": false
+  },
+  "generatedOn": "2026-08-28"
+}

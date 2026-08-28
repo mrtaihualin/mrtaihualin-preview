@@ -7,6 +7,37 @@
   var previewBase = guardScript && guardScript.src
     ? new URL('.', guardScript.src).pathname
     : window.location.pathname.replace(/[^/]*$/, '');
+
+  function memoryStorage() {
+    var values = Object.create(null);
+    var store = {
+      key: function (index) {
+        var keys = Object.keys(values);
+        return index >= 0 && index < keys.length ? keys[index] : null;
+      },
+      getItem: function (key) {
+        key = String(key);
+        return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : null;
+      },
+      setItem: function (key, value) { values[String(key)] = String(value); },
+      removeItem: function (key) { delete values[String(key)]; },
+      clear: function () { values = Object.create(null); }
+    };
+    Object.defineProperty(store, 'length', {
+      enumerable: true,
+      get: function () { return Object.keys(values).length; }
+    });
+    return store;
+  }
+
+  try {
+    Object.defineProperty(window, 'localStorage', { configurable: true, value: memoryStorage() });
+    Object.defineProperty(window, 'sessionStorage', { configurable: true, value: memoryStorage() });
+    document.documentElement.setAttribute('data-preview-storage-guard', 'isolated-memory');
+  } catch (_storageError) {
+    document.documentElement.setAttribute('data-preview-storage-guard', 'failed-closed');
+    throw new Error('PREVIEW_UI_ONLY_STORAGE_ISOLATION_FAILED');
+  }
   var fixture = Object.freeze({
     tier: 'preview-ui-only',
     words: [

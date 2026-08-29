@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Shared Page Framework — Protected Preview</title>
+  <style>
+    :root{color-scheme:light;--gold:#9b6a08;--line:#c8973a;--cream:#faf4e8;--ink:#3d2a0b}*{box-sizing:border-box}body{margin:0;background:#f7f1e5;color:var(--ink);font-family:system-ui,"Noto Sans Thai","Noto Sans TC",sans-serif}.wrap{width:min(1080px,calc(100% - 32px));margin:36px auto 60px}.hero,.group{background:#fff;border:1px solid #ead8b5;border-radius:22px;padding:24px;box-shadow:0 10px 30px rgba(94,61,5,.08)}.hero{border:2px solid var(--line);background:var(--cream)}h1{margin:0 0 8px;font-size:clamp(24px,5vw,38px)}p{line-height:1.7;margin:7px 0}.badge{display:inline-block;margin-top:8px;padding:7px 12px;border-radius:999px;background:#392708;color:#fff8e8;font-weight:800;font-size:13px}.group{margin-top:18px}h2{margin:0 0 14px;color:var(--gold);font-size:21px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}a{display:flex;min-height:54px;align-items:center;padding:12px 15px;border:1px solid #e1c98f;border-radius:14px;background:#fffaf0;color:#6d4805;text-decoration:none;font-weight:750}a:hover{border-color:var(--gold);background:#fff5db}.note{font-size:13px;color:#74664d}@media(max-width:560px){.wrap{width:min(100% - 20px,1080px);margin-top:18px}.hero,.group{padding:18px;border-radius:18px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <h1>5.1 — 6 Games + login</h1>
+      <p>ตรวจ Desktop + Mobile Portrait: เกมทั้ง 6 ใช้หัว Login แบบ Reading เดียวกันทุกขนาด; หน้าอื่นใช้ขนาดเดียวกันและตัดเฉพาะ 玩法 ออก ส่วน Lego ด้านล่างไม่เปลี่ยน</p>
+      <p>ตรวจ Tone / Reading / Listening / Typing / Word Order: ไม่มีแถบ 進度, คะแนนรายข้อยังอยู่, ช่องไฟข้อความสี่บรรทัด 5/5/5px และ counter ใช้หน่วยตามความหมายของเกม</p>
+      <p>Mobile Portrait ต้องไม่มีปุ่มลอย 🎮 遊戲選單 และปุ่มที่เหลือต้องอยู่กึ่งกลางตามจำนวนจริง; Desktop และ Mobile Landscape ต้องคงเดิม</p>
+      <p class="note">Exact source head <code>32ca23b02d611be6e6079c8ac4b7c6bf29fed7aa</code> · Preview <code>20542db</code> ถูกแทนที่</p>
+      <span class="badge">UI ONLY · NO REAL NETWORK</span>
+    </section>
+    <section class="group"><h2>6 Games — Login header + Portrait controls</h2><div class="grid">
+      <a href="tone-finder.html?rev=3">🎵 Tone</a><a href="reading-game.html?rev=3">✍️ Reading</a><a href="listening-game.html?rev=3">🎧 Listening</a><a href="typing-game.html?rev=3">⌨️ Typing</a><a href="word-order.html?rev=3">🧩 Word Order</a><a href="lego.html?rev=3">🧱 Lego — Login only</a>
+    </div></section>
+    <section class="group"><h2>หน้ารวมและพื้นที่เรียน</h2><div class="grid">
+      <a href="games.html?rev=3">🎮 Games Hub</a><a href="games-practice.html?rev=3">🏋️ Practice</a><a href="games-challenge.html?rev=3">🏆 Challenge</a><a href="my-progress.html?rev=3">📈 Learning Center / My Progress</a><a href="vault.html?rev=3">🗂️ Vault</a>
+    </div></section>
+    <section class="group"><h2>ผลจบเกมและ Leaderboard</h2><div class="grid">
+      <a href="preview-results.html?rev=3">✅ Result UI — ทั้ง 6 เกม</a><a href="all-board.html?rev=3">🏅 Leaderboard รวม</a><a href="leaderboard.html?rev=3">Tone Board</a><a href="reading-board.html?rev=3">Reading Board</a><a href="listening-board.html?rev=3">Listening Board</a><a href="typing-board.html?rev=3">Typing Board</a><a href="word-order-board.html?rev=3">Word Order Board</a>
+    </div></section>
+  </main>
+</body>
+</html>

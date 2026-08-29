@@ -1,0 +1,36 @@
+{
+  "kind": "protected-ui-only-snapshot",
+  "sourceRepository": "mrtaihualin/mrtaihualin.github.io",
+  "sourceBase": "45f86dc6bb91c2f41c28d74a472b76d44c684fa1",
+  "sourceDiffSha256": "147ea6167fa493b123e3bb21f631f515a91110ad9f2edc129f8839e472213f58",
+  "sourceFiles": [
+    "MAINTENANCE.md",
+    "games.html",
+    "js/core/minimum-guest-launch.js",
+    "scripts/tests-minimum-guest-launch.js",
+    "scripts/tests-shared-games-phase1.js",
+    "scripts/tests-study-plan-integration.js"
+  ],
+  "previewRepository": "mrtaihualin/mrtaihualin-preview",
+  "previewBase": "dc2e52ea5d9d76d873411403b54803b5d2b8b504",
+  "path": "/game-search-restore-147ea61/",
+  "runtime": {
+    "auth": "simulated-login-free",
+    "supabase": false,
+    "provider": false,
+    "session": false,
+    "accountData": false,
+    "searchExecution": false,
+    "searchQuota": false,
+    "externalNetwork": false,
+    "browserStorage": "isolated-memory"
+  },
+  "contract": {
+    "guest": "locked-login-message-only",
+    "loginFree": "one-game-search-input-and-button",
+    "timeAutoPlan": "absent",
+    "gameCards": "preserved",
+    "challenge": "excluded"
+  },
+  "generatedOn": "2026-08-29"
+}

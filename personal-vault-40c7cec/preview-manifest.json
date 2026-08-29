@@ -1,0 +1,30 @@
+{
+  "kind": "protected-ui-only-snapshot",
+  "sourceRepository": "mrtaihualin/mrtaihualin.github.io",
+  "sourcePullRequest": 100,
+  "sourceHead": "40c7cec6ad7817bdbbbc768debf134e04b2c299e",
+  "previewRepository": "mrtaihualin/mrtaihualin-preview",
+  "previewBase": "d4d45c0c958d64dda07f2d07ecce0ed1ea67e220",
+  "path": "/personal-vault-40c7cec/",
+  "assetRevision": 1,
+  "runtime": {
+    "personalData": "clearly-labelled-in-memory-sample",
+    "supabase": false,
+    "auth": "simulated-owner-only",
+    "gameContent": "local-non-personal-fixture",
+    "scoreWrites": false,
+    "browserStorage": "isolated-memory",
+    "externalNetwork": false
+  },
+  "responsiveContract": {
+    "desktopGameControls": "right-vertical-3",
+    "portraitGameControls": "right-vertical-3",
+    "mobileLandscapeLogin": false,
+    "mobileLandscapeGameControls": "existing-horizontal-2",
+    "vaultPortraitControls": "right-horizontal-2",
+    "vaultRiceControls": 0,
+    "vaultSearch": "combined-words-and-sentences",
+    "limits": { "words": 50, "sentences": 50 }
+  },
+  "generatedOn": "2026-08-29"
+}

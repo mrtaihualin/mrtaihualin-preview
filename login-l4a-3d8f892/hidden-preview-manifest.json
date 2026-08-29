@@ -1,0 +1,21 @@
+{
+  "kind": "provider-capable-hidden-login-l4a-preview",
+  "sourceRepository": "mrtaihualin/mrtaihualin.github.io",
+  "sourcePullRequest": 98,
+  "sourceHead": "3d8f8924b778e8a99d2f7bd3c73735106d41a559",
+  "sourceBase": "e2eeb6bca794047eba9c5e03deda0e5f7d38647b",
+  "previewRepository": "mrtaihualin/mrtaihualin-preview",
+  "previewBase": "289483bf3312fea27a3538c42265924ef7c8afde",
+  "path": "/mrtaihualin-preview/login-l4a-3d8f892/",
+  "scope": "LOGIN-L4A Human matrix only",
+  "realPages": 17,
+  "callbackPages": ["line-callback.html"],
+  "configuration": "existing authorized Staging client configuration",
+  "productionDeploy": false,
+  "schemaConfigRlsProviderMutation": false,
+  "accountCreateDelete": false,
+  "unrelatedApplicationDataAccess": false,
+  "parkedRuntimes": "OFF",
+  "providerCallbackTarget": "/mrtaihualin-preview/login-l4a-3d8f892/reading-game.html",
+  "generatedOn": "2026-08-29"
+}

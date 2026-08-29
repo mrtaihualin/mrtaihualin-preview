@@ -1,0 +1,35 @@
+{
+  "kind": "protected-ui-only-snapshot",
+  "sourceRepository": "mrtaihualin/mrtaihualin.github.io",
+  "sourceBase": "7c8237133910a78f186fc62b19b67c0cda44860e",
+  "sourceHead": "04c76f85ef87e7bf23aa65655fa17f7670c730f7",
+  "sourcePullRequest": 102,
+  "sourceDiffSha256": "e18589793794458e0f124e9c73ba1817d4f26b9021c0d3b3544146cc45439a21",
+  "sourceFiles": [
+    "MAINTENANCE.md",
+    "js/games/tone-finder-game.js",
+    "js/games/tone-finder-game.min.js",
+    "scripts/tests-tone-phonics-manual.js",
+    "tone-finder.html"
+  ],
+  "previewRepository": "mrtaihualin/mrtaihualin-preview",
+  "previewBase": "2ec76951bc9b869e3f4963e8e04758d6caf2fd9b",
+  "path": "/tone-phonics-manual-04c76f8/",
+  "runtime": {
+    "auth": false,
+    "supabase": false,
+    "provider": false,
+    "session": false,
+    "accountData": false,
+    "productionData": false,
+    "externalNetwork": false,
+    "browserStorage": "isolated-memory"
+  },
+  "contract": {
+    "surface": "Tone state-preserving alphabet/manual overlay",
+    "teacherAudio": "same-origin copied flashcard audio only",
+    "gameStateWrites": false,
+    "classroom": "excluded"
+  },
+  "generatedOn": "2026-08-29"
+}

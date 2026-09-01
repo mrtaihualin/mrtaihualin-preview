@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Phase 1.2 · 5.4 Human Preview</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,sans-serif;color:#3f2c0b;background:#f6f0e4}
+    body{max-width:980px;margin:0 auto;padding:28px 18px 54px}
+    h1{font-size:clamp(24px,4vw,36px);margin:0 0 8px}p{line-height:1.7}
+    .gate{padding:14px 16px;border:2px solid #b7862d;border-radius:14px;background:#fff8e8;font-weight:700}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:22px 0}
+    a.card{display:block;padding:18px;border:1px solid #d8c49b;border-radius:14px;background:#fff;color:inherit;text-decoration:none;box-shadow:0 4px 14px #6d4a1012}
+    a.card strong{display:block;font-size:18px;margin-bottom:6px}a.card span{color:#715b32;line-height:1.55}
+    .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px}.compare img{width:100%;border-radius:14px;border:1px solid #d8c49b;background:#fff}
+    .compare b{display:block;margin:0 0 6px}@media(max-width:680px){.compare{grid-template-columns:1fr}}
+    code{background:#efe4cd;padding:2px 6px;border-radius:6px}
+  </style>
+</head>
+<body>
+  <h1>Phase 1.2 · 5.4 Human Preview</h1>
+  <p class="gate">Preview only · Source SHA <code>fc7803479d7402421f8ee0a81aa6e7283c255a01</code> · Production ยังไม่เปลี่ยน</p>
+  <p>ตรวจ 3 เรื่องเท่านั้น: การ์ด <b>字母練習區</b> บน Desktop +15%, font Standard/Modern ภายในการ์ดทั้ง Desktop/Mobile, และระยะคำศัพท์ในเกมเปิดใช้งาน Tone/Reading/Typing/Word Order ทั้ง Desktop/Mobile.</p>
+  <div class="grid">
+    <a class="card" href="tone-alpha.html"><strong>🔤 字母練習區</strong><span>เปิดการ์ด ตรวจขนาด Desktop และกดปุ่ม Preview มุมซ้ายบนเพื่อสลับ Standard → Modern → Standard</span></a>
+    <a class="card" href="tone-spacing.html"><strong>🎵 Tone spacing</strong><span>ตัวอย่างคำไทยยาว + คำอ่าน + Romanization + คำแปล</span></a>
+    <a class="card" href="reading-spacing.html"><strong>🔤 Reading spacing</strong><span>4-row active vocabulary stack พร้อมข้อความยาว</span></a>
+    <a class="card" href="typing-spacing.html"><strong>⌨️ Typing spacing</strong><span>4-row active vocabulary stack พร้อมข้อความยาว</span></a>
+    <a class="card" href="word-order-spacing.html"><strong>🧩 Word Order spacing</strong><span>คำศัพท์/คำอ่าน/โรมัน/คำแปลภายใน word tile</span></a>
+  </div>
+  <h2>Before / After reference</h2>
+  <div class="compare">
+    <div><b>Before — ภาพอ้างอิงจาก Lin</b><img src="before-tone-spacing.jpg" alt="Before reference showing Thai word and reading too close"></div>
+    <div><b>After — Tone Mobile source fixture</b><img src="after-tone-spacing-mobile.png" alt="After preview with separated vocabulary rows"></div>
+  </div>
+  <p>Excluded and unchanged: Lego lower gameplay, Listening, score system, Auth, data, and Production. Human PASS is required before any merge or Production action.</p>
+</body>
+</html>

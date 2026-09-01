@@ -1,0 +1,16 @@
+{
+  "title": "Phase 1.2 Delta 5.4 Human Preview",
+  "sourceSha": "fc7803479d7402421f8ee0a81aa6e7283c255a01",
+  "sourcePr": 103,
+  "productionBaseSha": "a8dcdbb281de83e683df4be79d5be0ca27f7ab9b",
+  "humanGate": "PENDING",
+  "productionChanged": false,
+  "surfaces": [
+    "tone-alpha.html",
+    "tone-spacing.html",
+    "reading-spacing.html",
+    "typing-spacing.html",
+    "word-order-spacing.html"
+  ],
+  "excluded": ["lego", "listening", "score", "auth", "data", "production"]
+}

@@ -1,0 +1,20 @@
+{
+  "title": "Reading option and score-evidence Preview",
+  "sourceRepository": "mrtaihualin/mrtaihualin.github.io",
+  "sourceCommit": "818410f",
+  "productionBaseSha": "b81f96ed7bfe130d788a796a5e1bf78e29db32f9",
+  "path": "/mrtaihualin-preview/reading-fixes-818410f/",
+  "productionChanged": false,
+  "runtime": {
+    "auth": false,
+    "accountData": false,
+    "scoreWrites": false,
+    "supabase": false,
+    "externalNetwork": false
+  },
+  "checks": {
+    "fiveStandaloneMarksVisible": true,
+    "scoreEvidence142": "PASS"
+  },
+  "generatedOn": "2026-09-05"
+}

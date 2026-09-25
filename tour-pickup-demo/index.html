@@ -38,6 +38,8 @@ hr{border:0;border-top:1px solid #eee;margin:16px 0}
 <label>姓名</label><input id="cName" placeholder="例如：Lin">
 <label>航班號碼</label><input id="cFlight" placeholder="例如：CI833" autocapitalize="characters">
 <label>旅行日期</label><input id="cDate" type="date">
+<button style="width:100%;margin-top:10px" onclick="checkFlight()">查詢航班 / เช็กเที่ยวบิน</button>
+<div id="flightResult" class="status warn">尚未查詢航班</div>
 <label>LINE / 電話</label><input id="cContact" placeholder="LINE ID 或電話">
 <button class="primary" style="width:100%;margin-top:12px" onclick="createCustomerSession()">建立接送連線</button>
 <div id="customerSession" class="hidden">
@@ -93,8 +95,66 @@ function showRole(r){
 function code(){ return 'TP-'+Math.random().toString(36).slice(2,8).toUpperCase(); }
 function sanitizePeerId(x){return x.replace(/[^A-Z0-9-]/g,'').toUpperCase()}
 
+async function checkFlight(){
+  const flight=(cFlight.value||'').trim().toUpperCase();
+  const date=(cDate.value||'').trim();
+  if(!flight||!date){alert('請先填航班號碼和旅行日期');return}
+  let key=localStorage.getItem('aviationstack_key');
+  if(!key){
+    key=prompt('輸入 Aviationstack API Key（只儲存在這台手機）');
+    if(!key)return;
+    localStorage.setItem('aviationstack_key',key.trim());
+  }
+  flightResult.className='status warn';
+  flightResult.textContent='查詢中…';
+  try{
+    const url='https://api.aviationstack.com/v1/flights?access_key='+encodeURIComponent(key)+'&flight_iata='+encodeURIComponent(flight)+'&flight_date='+encodeURIComponent(date)+'&limit=5';
+    const res=await fetch(url);
+    const data=await res.json();
+    if(!res.ok || data.error){
+      throw new Error((data.error&&data.error.message)||('HTTP '+res.status));
+    }
+    const list=Array.isArray(data.data)?data.data:[];
+    if(!list.length){
+      flightResult.className='status warn';
+      flightResult.textContent='找不到這個航班 / ไม่พบเที่ยวบิน';
+      return;
+    }
+    const x=list[0];
+    const dep=x.departure||{}, arr=x.arrival||{}, fl=x.flight||{};
+    const status=x.flight_status||'-';
+    const scheduled=arr.scheduled||'-';
+    const estimated=arr.estimated||arr.actual||'-';
+    const delay=(arr.delay===null||arr.delay===undefined)?'-':arr.delay+' min';
+    job=Object.assign({},job||{},{
+      flight:fl.iata||flight,
+      flightInfo:{
+        dep:(dep.iata||'-')+' '+(dep.airport||''),
+        arr:(arr.iata||'-')+' '+(arr.airport||''),
+        status:status,
+        scheduled:scheduled,
+        estimated:estimated,
+        delay:delay
+      }
+    });
+    flightResult.className='status good';
+    flightResult.innerHTML='<b>'+escapeHtml(fl.iata||flight)+'</b> • '+escapeHtml(status)+'<br>'+
+      escapeHtml(dep.iata||'-')+' → '+escapeHtml(arr.iata||'-')+
+      '<br>Scheduled: '+escapeHtml(scheduled)+
+      '<br>Estimated: '+escapeHtml(estimated)+
+      '<br>Delay: '+escapeHtml(delay);
+  }catch(e){
+    flightResult.className='status warn';
+    flightResult.innerHTML='查詢失敗：'+escapeHtml(e.message)+'<br><span class="small">若 API Key 有問題，請清除後重新輸入。</span>';
+  }
+}
+function resetFlightKey(){
+  localStorage.removeItem('aviationstack_key');
+  alert('已清除 API Key');
+}
+
 function createCustomerSession(){
-  job={name:cName.value.trim(),flight:cFlight.value.trim().toUpperCase(),date:cDate.value,contact:cContact.value.trim()};
+  job=Object.assign({},job||{},{name:cName.value.trim(),flight:cFlight.value.trim().toUpperCase(),date:cDate.value,contact:cContact.value.trim()});
   if(!job.name||!job.flight||!job.date){alert('請填姓名、航班號碼、旅行日期');return}
   sessionCode=code();
   customerCode.textContent=sessionCode;
@@ -146,7 +206,8 @@ function wireDriverConnection(c){
     if(msg.type==='job'){
       job=msg.job;
       driverSession.classList.remove('hidden');
-      driverJob.innerHTML='<b>'+escapeHtml(job.flight)+'</b><br>ลูกค้า: '+escapeHtml(job.name)+'<br>วันที่: '+escapeHtml(job.date)+'<br>ติดต่อ: '+escapeHtml(job.contact||'-');
+      driverJob.innerHTML='<b>'+escapeHtml(job.flight)+'</b><br>ลูกค้า: '+escapeHtml(job.name)+'<br>วันที่: '+escapeHtml(job.date)+'<br>ติดต่อ: '+escapeHtml(job.contact||'-')+
+      (job.flightInfo?'<hr>ต้นทาง: '+escapeHtml(job.flightInfo.dep)+'<br>ปลายทาง: '+escapeHtml(job.flightInfo.arr)+'<br>สถานะ: <b>'+escapeHtml(job.flightInfo.status)+'</b><br>กำหนดถึง: '+escapeHtml(job.flightInfo.scheduled)+'<br>คาดว่าจะถึง: '+escapeHtml(job.flightInfo.estimated)+'<br>ดีเลย์: '+escapeHtml(job.flightInfo.delay):'');
     }
     if(msg.type==='loc') showRemoteMap('driverMap',msg.lat,msg.lng,'ลูกค้า');
     if(msg.type==='stop') driverConnStatus('ลูกค้าหยุดแชร์ตำแหน่งแล้ว','warn');

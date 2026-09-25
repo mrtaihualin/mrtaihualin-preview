@@ -78,8 +78,11 @@ hr{border:0;border-top:1px solid #eee;margin:16px 0}
 </div>
 
 <script>
-let role='customer', peer=null, conn=null, watcher=null, stopAt=0, timerInt=null;
+let role='customer';
+let customerPeer=null, driverPeer=null, customerConn=null, driverConn=null;
+let watchers={customer:null,driver:null}, stopAts={customer:0,driver:0}, timers={customer:null,driver:null};
 let sessionCode=null, job=null;
+
 function showRole(r){
   role=r;
   ['customer','operator','driver'].forEach(x=>document.getElementById(x).classList.toggle('hidden',x!==r));
@@ -89,99 +92,123 @@ function showRole(r){
 }
 function code(){ return 'TP-'+Math.random().toString(36).slice(2,8).toUpperCase(); }
 function sanitizePeerId(x){return x.replace(/[^A-Z0-9-]/g,'').toUpperCase()}
+
 function createCustomerSession(){
   job={name:cName.value.trim(),flight:cFlight.value.trim().toUpperCase(),date:cDate.value,contact:cContact.value.trim()};
   if(!job.name||!job.flight||!job.date){alert('請填姓名、航班號碼、旅行日期');return}
   sessionCode=code();
   customerCode.textContent=sessionCode;
   customerSession.classList.remove('hidden');
-  createPeer('cust-'+sessionCode);
-}
-function createPeer(id){
-  if(peer) try{peer.destroy()}catch(e){}
-  peer=new Peer(id,{debug:1});
-  peer.on('open',()=>{ if(role==='customer') customerConn.textContent='等待司機連線…'; });
-  peer.on('connection',c=>{
-    conn=c; wireConnection();
-    conn.on('open',()=>{
-      customerConn.className='status good';
-      customerConn.textContent='司機已連線';
-      send({type:'job',job});
+  if(customerPeer) try{customerPeer.destroy()}catch(e){}
+  customerPeer=new Peer('cust-'+sessionCode,{debug:1});
+  customerPeer.on('open',()=>{
+    customerConn=null;
+    customerConnStatus('等待司機連線…','warn');
+  });
+  customerPeer.on('connection',c=>{
+    customerConn=c;
+    wireCustomerConnection(c);
+    c.on('open',()=>{
+      customerConnStatus('司機已連線','good');
+      c.send({type:'job',job});
     });
   });
-  peer.on('error',e=>{ if(role==='customer'){customerConn.className='status warn';customerConn.textContent='連線錯誤：'+e.type} });
+  customerPeer.on('error',e=>customerConnStatus('連線錯誤：'+e.type,'warn'));
 }
+
 function connectDriver(){
   sessionCode=sanitizePeerId(dCode.value.trim());
   if(!sessionCode){alert('กรอกรหัสเชื่อมต่อ');return}
-  if(peer) try{peer.destroy()}catch(e){}
-  peer=new Peer(undefined,{debug:1});
-  peer.on('open',()=>{
-    conn=peer.connect('cust-'+sessionCode,{reliable:true});
-    wireConnection();
-    conn.on('open',()=>{
-      driverConn.className='status good';driverConn.textContent='เชื่อมต่อกับลูกค้าแล้ว';
+  if(driverPeer) try{driverPeer.destroy()}catch(e){}
+  driverPeer=new Peer(undefined,{debug:1});
+  driverPeer.on('open',()=>{
+    driverConn=driverPeer.connect('cust-'+sessionCode,{reliable:true});
+    wireDriverConnection(driverConn);
+    driverConn.on('open',()=>{
+      driverConnStatus('เชื่อมต่อกับลูกค้าแล้ว','good');
       driverSession.classList.remove('hidden');
-      send({type:'hello',role:'driver'});
+      driverConn.send({type:'hello',role:'driver'});
     });
   });
-  peer.on('error',e=>{driverConn.className='status warn';driverConn.textContent='เชื่อมต่อไม่ได้: '+e.type});
+  driverPeer.on('error',e=>driverConnStatus('เชื่อมต่อไม่ได้: '+e.type,'warn'));
 }
-function wireConnection(){
-  if(!conn)return;
-  conn.on('data',msg=>{
+
+function wireCustomerConnection(c){
+  c.on('data',msg=>{
+    if(msg.type==='loc') showRemoteMap('customerMap',msg.lat,msg.lng,'司機');
+    if(msg.type==='stop') customerConnStatus('คนขับหยุดแชร์ตำแหน่งแล้ว','warn');
+    if(msg.type==='met'){ stopLocation('customer',false); alert('已確認接到旅客'); }
+  });
+  c.on('close',()=>customerConnStatus('連線已中斷','warn'));
+}
+function wireDriverConnection(c){
+  c.on('data',msg=>{
     if(msg.type==='job'){
-      job=msg.job; driverSession.classList.remove('hidden');
+      job=msg.job;
+      driverSession.classList.remove('hidden');
       driverJob.innerHTML='<b>'+escapeHtml(job.flight)+'</b><br>ลูกค้า: '+escapeHtml(job.name)+'<br>วันที่: '+escapeHtml(job.date)+'<br>ติดต่อ: '+escapeHtml(job.contact||'-');
     }
-    if(msg.type==='loc'){
-      if(role==='customer') showRemoteMap('customerMap',msg.lat,msg.lng,'司機');
-      if(role==='driver') showRemoteMap('driverMap',msg.lat,msg.lng,'ลูกค้า');
-    }
-    if(msg.type==='stop'){
-      if(role==='customer') customerConn.textContent='อีกฝ่ายหยุดแชร์ตำแหน่งแล้ว';
-      if(role==='driver') driverConn.textContent='อีกฝ่ายหยุดแชร์ตำแหน่งแล้ว';
-    }
-    if(msg.type==='met'){
-      stopLocation(role,false);
-      alert(role==='customer'?'已確認接到旅客':'ยืนยันว่าเจอลูกค้าแล้ว');
-    }
+    if(msg.type==='loc') showRemoteMap('driverMap',msg.lat,msg.lng,'ลูกค้า');
+    if(msg.type==='stop') driverConnStatus('ลูกค้าหยุดแชร์ตำแหน่งแล้ว','warn');
+    if(msg.type==='met'){ stopLocation('driver',false); alert('ยืนยันว่าเจอลูกค้าแล้ว'); }
   });
-  conn.on('close',()=>{ if(role==='customer') customerConn.textContent='連線已中斷'; if(role==='driver') driverConn.textContent='การเชื่อมต่อถูกตัด'; });
+  c.on('close',()=>driverConnStatus('การเชื่อมต่อถูกตัด','warn'));
 }
-function send(x){ if(conn&&conn.open) conn.send(x) }
+function customerConnStatus(text,kind){
+  customerConn.className='status '+(kind||'');
+  customerConn.textContent=text;
+}
+function driverConnStatus(text,kind){
+  driverConnEl=document.getElementById('driverConn');
+  driverConnEl.className='status '+(kind||'');
+  driverConnEl.textContent=text;
+}
+function activeConn(r){ return r==='customer'?customerConn:driverConn; }
+function send(r,msg){ const c=activeConn(r); if(c&&c.open)c.send(msg); }
+
 function startLocation(r){
   if(!navigator.geolocation){alert('Browser นี้ไม่รองรับ GPS');return}
-  if(!conn||!conn.open){alert(r==='customer'?'請先等待司機連線':'กรุณาเชื่อมต่อกับลูกค้าก่อน');return}
+  const c=activeConn(r);
+  if(!c||!c.open){alert(r==='customer'?'請先等待司機連線':'กรุณาเชื่อมต่อกับลูกค้าก่อน');return}
   stopLocation(r,false);
-  stopAt=Date.now()+20*60*1000;
-  watcher=navigator.geolocation.watchPosition(p=>{
-    send({type:'loc',lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy,t:Date.now()});
+  stopAts[r]=Date.now()+20*60*1000;
+  watchers[r]=navigator.geolocation.watchPosition(p=>{
+    send(r,{type:'loc',lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy,t:Date.now()});
     updateTimer(r);
   },e=>alert(r==='customer'?'請允許瀏覽器使用定位':'กรุณาอนุญาต Location ใน Browser'),{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
-  timerInt=setInterval(()=>updateTimer(r),1000);
+  timers[r]=setInterval(()=>updateTimer(r),1000);
   updateTimer(r);
 }
 function updateTimer(r){
-  const left=Math.max(0,stopAt-Date.now());
+  const left=Math.max(0,stopAts[r]-Date.now());
   const m=Math.floor(left/60000),s=Math.floor((left%60000)/1000);
   const el=document.getElementById(r==='customer'?'customerTimer':'driverTimer');
   el.innerHTML=(r==='customer'?'位置分享剩餘 ':'เหลือเวลาแชร์ตำแหน่ง ')+'<span class="big">'+m+':'+String(s).padStart(2,'0')+'</span>';
   if(left<=0) stopLocation(r);
 }
 function stopLocation(r,notify=true){
-  if(watcher!==null){navigator.geolocation.clearWatch(watcher);watcher=null}
-  if(timerInt){clearInterval(timerInt);timerInt=null}
-  stopAt=0;
+  if(watchers[r]!==null){navigator.geolocation.clearWatch(watchers[r]);watchers[r]=null}
+  if(timers[r]){clearInterval(timers[r]);timers[r]=null}
+  stopAts[r]=0;
   const el=document.getElementById(r==='customer'?'customerTimer':'driverTimer');
   if(el) el.textContent=r==='customer'?'已停止分享位置':'หยุดแชร์ตำแหน่งแล้ว';
-  if(notify)send({type:'stop'});
+  if(notify)send(r,{type:'stop'});
 }
-function metCustomer(){send({type:'met'});stopLocation('driver',false);alert('จบงาน — ปิดการแชร์ตำแหน่งแล้ว')}
+function metCustomer(){
+  send('driver',{type:'met'});
+  stopLocation('driver',false);
+  stopLocation('customer',false);
+  alert('จบงาน — ปิดการแชร์ตำแหน่งแล้ว');
+}
 function showRemoteMap(id,lat,lng,label){
   document.getElementById(id).innerHTML='<iframe loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.openstreetmap.org/export/embed.html?bbox='+(lng-0.004)+'%2C'+(lat-0.003)+'%2C'+(lng+0.004)+'%2C'+(lat+0.003)+'&layer=mapnik&marker='+lat+'%2C'+lng+'"></iframe><div class="small">'+label+': '+lat.toFixed(5)+', '+lng.toFixed(5)+'</div>';
 }
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-window.addEventListener('beforeunload',()=>{try{stopLocation(role,false);peer&&peer.destroy()}catch(e){}});
+window.addEventListener('beforeunload',()=>{
+  try{
+    stopLocation('customer',false);stopLocation('driver',false);
+    customerPeer&&customerPeer.destroy();driverPeer&&driverPeer.destroy();
+  }catch(e){}
+});
 </script>
 </body></html>

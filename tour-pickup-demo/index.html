@@ -24,7 +24,7 @@ hr{border:0;border-top:1px solid #eee;margin:16px 0}
 </head>
 <body>
 <div class="wrap">
-<h1>Tour Pickup Live</h1>
+<h1>Tour Pickup Live <span class="small">v0.4</span></h1>
 <div class="muted">Prototype แบบ P2P • ไม่มีฐานข้อมูลกลาง • แชร์ตำแหน่งสูงสุด 20 นาที</div>
 
 <div class="tabs">
@@ -58,8 +58,8 @@ hr{border:0;border-top:1px solid #eee;margin:16px 0}
 <h3>公司 / 調度</h3>
 <div class="status">此版本不存資料到伺服器。<br>旅客建立連線碼後，把「連線碼 + 航班 + 姓名」傳給司機即可。</div>
 <label>航班狀態</label>
-<div class="status warn">DEMO：尚未連接 Flight API</div>
-<div class="small" style="margin-top:10px">下一階段可加入 ETA / Delay / Landed 與派車後台。</div>
+<div id="operatorFlight" class="status warn">尚未查詢航班</div>
+<div class="small" style="margin-top:10px">旅客查詢航班後，這裡會同步顯示結果。</div>
 </section>
 
 <section id="driver" class="card hidden">
@@ -105,48 +105,57 @@ async function checkFlight(){
     if(!key)return;
     localStorage.setItem('aviationstack_key',key.trim());
   }
-  flightResult.className='status warn';
-  flightResult.textContent='查詢中…';
+  setFlightBox('查詢中…','warn');
   try{
-    const url='https://api.aviationstack.com/v1/flights?access_key='+encodeURIComponent(key)+'&flight_iata='+encodeURIComponent(flight)+'&flight_date='+encodeURIComponent(date)+'&limit=5';
+    const url='https://api.aviationstack.com/v1/flights?access_key='+encodeURIComponent(key)+'&flight_iata='+encodeURIComponent(flight)+'&limit=20';
     const res=await fetch(url);
     const data=await res.json();
     if(!res.ok || data.error){
+      if(data.error && (data.error.code==='invalid_access_key'||data.error.code===101)) localStorage.removeItem('aviationstack_key');
       throw new Error((data.error&&data.error.message)||('HTTP '+res.status));
     }
     const list=Array.isArray(data.data)?data.data:[];
-    if(!list.length){
-      flightResult.className='status warn';
-      flightResult.textContent='找不到這個航班 / ไม่พบเที่ยวบิน';
+    const target=list.find(x=>{
+      const d=((x.departure&&x.departure.scheduled)||'').slice(0,10);
+      const a=((x.arrival&&x.arrival.scheduled)||'').slice(0,10);
+      return d===date || a===date;
+    }) || list[0];
+    if(!target){
+      setFlightBox('找不到這個航班 / ไม่พบเที่ยวบิน','warn');
       return;
     }
-    const x=list[0];
-    const dep=x.departure||{}, arr=x.arrival||{}, fl=x.flight||{};
-    const status=x.flight_status||'-';
-    const scheduled=arr.scheduled||'-';
-    const estimated=arr.estimated||arr.actual||'-';
-    const delay=(arr.delay===null||arr.delay===undefined)?'-':arr.delay+' min';
-    job=Object.assign({},job||{},{
-      flight:fl.iata||flight,
-      flightInfo:{
-        dep:(dep.iata||'-')+' '+(dep.airport||''),
-        arr:(arr.iata||'-')+' '+(arr.airport||''),
-        status:status,
-        scheduled:scheduled,
-        estimated:estimated,
-        delay:delay
-      }
-    });
-    flightResult.className='status good';
-    flightResult.innerHTML='<b>'+escapeHtml(fl.iata||flight)+'</b> • '+escapeHtml(status)+'<br>'+
+    const x=target, dep=x.departure||{}, arr=x.arrival||{}, fl=x.flight||{};
+    const info={
+      dep:(dep.iata||'-')+' '+(dep.airport||''),
+      arr:(arr.iata||'-')+' '+(arr.airport||''),
+      status:x.flight_status||'-',
+      scheduled:arr.scheduled||'-',
+      estimated:arr.estimated||arr.actual||'-',
+      actual:arr.actual||'-',
+      delay:(arr.delay===null||arr.delay===undefined)?'-':arr.delay+' min',
+      terminal:arr.terminal||'-',
+      gate:arr.gate||'-'
+    };
+    job=Object.assign({},job||{},{flight:fl.iata||flight,flightInfo:info});
+    const html='<b>'+escapeHtml(fl.iata||flight)+'</b> • '+escapeHtml(info.status)+'<br>'+
       escapeHtml(dep.iata||'-')+' → '+escapeHtml(arr.iata||'-')+
-      '<br>Scheduled: '+escapeHtml(scheduled)+
-      '<br>Estimated: '+escapeHtml(estimated)+
-      '<br>Delay: '+escapeHtml(delay);
+      '<br>Scheduled: '+escapeHtml(info.scheduled)+
+      '<br>Estimated: '+escapeHtml(info.estimated)+
+      '<br>Actual: '+escapeHtml(info.actual)+
+      '<br>Delay: '+escapeHtml(info.delay)+
+      '<br>Terminal/Gate: '+escapeHtml(info.terminal)+' / '+escapeHtml(info.gate);
+    flightResult.className='status good'; flightResult.innerHTML=html;
+    const op=document.getElementById('operatorFlight');
+    if(op){op.className='status good';op.innerHTML=html;}
   }catch(e){
-    flightResult.className='status warn';
-    flightResult.innerHTML='查詢失敗：'+escapeHtml(e.message)+'<br><span class="small">若 API Key 有問題，請清除後重新輸入。</span>';
+    setFlightBox('查詢失敗：'+escapeHtml(e.message),'warn');
   }
+}
+function setFlightBox(text,kind){
+  flightResult.className='status '+(kind||'');
+  flightResult.innerHTML=text;
+  const op=document.getElementById('operatorFlight');
+  if(op){op.className='status '+(kind||'');op.innerHTML=text;}
 }
 function resetFlightKey(){
   localStorage.removeItem('aviationstack_key');
@@ -179,6 +188,17 @@ function createCustomerSession(){
 function connectDriver(){
   sessionCode=sanitizePeerId(dCode.value.trim());
   if(!sessionCode){alert('กรอกรหัสเชื่อมต่อ');return}
+  // Same-device test mode: if the customer session is still open in this page,
+  // connect instantly without relying on the public PeerJS signaling service.
+  if(customerPeer && !customerPeer.destroyed && customerCode.textContent===sessionCode){
+    driverConnStatus('เชื่อมต่อกับลูกค้าแล้ว (ทดสอบบนเครื่องเดียว)','good');
+    driverSession.classList.remove('hidden');
+    if(job){
+      driverJob.innerHTML='<b>'+escapeHtml(job.flight)+'</b><br>ลูกค้า: '+escapeHtml(job.name)+'<br>วันที่: '+escapeHtml(job.date)+'<br>ติดต่อ: '+escapeHtml(job.contact||'-')+
+      (job.flightInfo?'<hr>ต้นทาง: '+escapeHtml(job.flightInfo.dep)+'<br>ปลายทาง: '+escapeHtml(job.flightInfo.arr)+'<br>สถานะ: <b>'+escapeHtml(job.flightInfo.status)+'</b><br>กำหนดถึง: '+escapeHtml(job.flightInfo.scheduled)+'<br>คาดว่าจะถึง: '+escapeHtml(job.flightInfo.estimated)+'<br>ถึงจริง: '+escapeHtml(job.flightInfo.actual)+'<br>ดีเลย์: '+escapeHtml(job.flightInfo.delay)+'<br>Terminal/Gate: '+escapeHtml(job.flightInfo.terminal)+' / '+escapeHtml(job.flightInfo.gate):'');
+    }
+    return;
+  }
   if(driverPeer) try{driverPeer.destroy()}catch(e){}
   driverPeer=new Peer(undefined,{debug:1});
   driverPeer.on('open',()=>{
@@ -230,11 +250,17 @@ function send(r,msg){ const c=activeConn(r); if(c&&c.open)c.send(msg); }
 function startLocation(r){
   if(!navigator.geolocation){alert('Browser นี้ไม่รองรับ GPS');return}
   const c=activeConn(r);
-  if(!c||!c.open){alert(r==='customer'?'請先等待司機連線':'กรุณาเชื่อมต่อกับลูกค้าก่อน');return}
+  const sameDevice=(customerPeer && !customerPeer.destroyed && customerCode.textContent===sessionCode && driverSession && !driverSession.classList.contains('hidden'));
+  if((!c||!c.open) && !sameDevice){alert(r==='customer'?'請先等待司機連線':'กรุณาเชื่อมต่อกับลูกค้าก่อน');return}
   stopLocation(r,false);
   stopAts[r]=Date.now()+20*60*1000;
   watchers[r]=navigator.geolocation.watchPosition(p=>{
     send(r,{type:'loc',lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy,t:Date.now()});
+    // local mirror for one-phone testing
+    if(customerPeer && !customerPeer.destroyed && customerCode.textContent===sessionCode){
+      if(r==='customer') showRemoteMap('driverMap',p.coords.latitude,p.coords.longitude,'ลูกค้า');
+      if(r==='driver') showRemoteMap('customerMap',p.coords.latitude,p.coords.longitude,'司機');
+    }
     updateTimer(r);
   },e=>alert(r==='customer'?'請允許瀏覽器使用定位':'กรุณาอนุญาต Location ใน Browser'),{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
   timers[r]=setInterval(()=>updateTimer(r),1000);

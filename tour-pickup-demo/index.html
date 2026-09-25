@@ -17,14 +17,16 @@ label{display:block;margin:11px 0 5px;font-size:13px;color:#606873}
 input{width:100%;padding:12px;border:1px solid #d9dce1;border-radius:11px;font-size:16px;background:white}
 .status{padding:11px;border-radius:12px;background:#f2f4f6;margin-top:10px;font-size:14px}
 .good{background:#e9f8ef}.warn{background:#fff6df}.hidden{display:none}.big{font-size:26px;font-weight:800}.code{font-size:28px;font-weight:900;letter-spacing:2px}
-.mapbox{height:260px;border-radius:15px;overflow:hidden;background:#e9edf1;margin-top:10px;position:relative}
-.mapbox iframe{width:100%;height:100%;border:0}.pin{padding:12px;text-align:center}.small{font-size:12px;color:#6e7681}
+.mapbox{min-height:150px;border-radius:15px;overflow:hidden;background:#e9edf1;margin-top:10px;position:relative;padding:14px}
+.pin{padding:12px;text-align:center}.small{font-size:12px;color:#6e7681}
+.maplink{display:block;text-decoration:none;text-align:center;background:#111;color:#fff;border-radius:12px;padding:13px;margin-top:10px;font-weight:700}
+.coords{font-size:20px;font-weight:800;margin-top:8px}
 hr{border:0;border-top:1px solid #eee;margin:16px 0}
 </style>
 </head>
 <body>
 <div class="wrap">
-<h1>Tour Pickup Live <span class="small">v0.4</span></h1>
+<h1>Tour Pickup Live <span class="small">v0.5</span></h1>
 <div class="muted">Prototype แบบ P2P • ไม่มีฐานข้อมูลกลาง • แชร์ตำแหน่งสูงสุด 20 นาที</div>
 
 <div class="tabs">
@@ -288,7 +290,9 @@ function metCustomer(){
   alert('จบงาน — ปิดการแชร์ตำแหน่งแล้ว');
 }
 function showRemoteMap(id,lat,lng,label){
-  document.getElementById(id).innerHTML='<iframe loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.openstreetmap.org/export/embed.html?bbox='+(lng-0.004)+'%2C'+(lat-0.003)+'%2C'+(lng+0.004)+'%2C'+(lat+0.003)+'&layer=mapnik&marker='+lat+'%2C'+lng+'"></iframe><div class="small">'+label+': '+lat.toFixed(5)+', '+lng.toFixed(5)+'</div>';
+  const url='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(lat+','+lng);
+  const el=document.getElementById(id);
+  el.innerHTML='<div><b>'+escapeHtml(label)+'</b><div class="coords">'+lat.toFixed(5)+', '+lng.toFixed(5)+'</div><div class="small">อัปเดตล่าสุด '+new Date().toLocaleTimeString()+'</div><a class="maplink" href="'+url+'" target="_blank" rel="noopener">เปิดใน Google Maps</a></div>';
 }
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 window.addEventListener('beforeunload',()=>{

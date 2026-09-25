@@ -26,7 +26,7 @@ hr{border:0;border-top:1px solid #eee;margin:16px 0}
 </head>
 <body>
 <div class="wrap">
-<h1>機場接送 / รับลูกค้าสนามบิน <span class="small">v0.7</span></h1>
+<h1>機場接送 / รับลูกค้าสนามบิน <span class="small">v0.8</span></h1>
 <div class="muted">ต้นแบบเชื่อมต่อโดยตรง • ยังไม่มีฐานข้อมูลกลาง • แชร์ตำแหน่งสูงสุด 20 นาที</div>
 
 <div class="tabs">
@@ -85,6 +85,7 @@ hr{border:0;border-top:1px solid #eee;margin:16px 0}
 let role='customer';
 let customerPeer=null, driverPeer=null, customerConn=null, driverConn=null;
 let watchers={customer:null,driver:null}, stopAts={customer:0,driver:0}, timers={customer:null,driver:null};
+let ownLocations={customer:null,driver:null}, remoteLocations={customer:null,driver:null};
 let sessionCode=null, job=null;
 
 function showRole(r){
@@ -217,7 +218,7 @@ function connectDriver(){
 
 function wireCustomerConnection(c){
   c.on('data',msg=>{
-    if(msg.type==='loc') showRemoteMap('customerMap',msg.lat,msg.lng,'司機');
+    if(msg.type==='loc'){ remoteLocations.customer={lat:msg.lat,lng:msg.lng}; renderRoute('customer'); }
     if(msg.type==='stop') customerConnStatus('司機已停止分享位置','warn');
     if(msg.type==='met'){ stopLocation('customer',false); alert('已確認接到旅客'); }
   });
@@ -231,7 +232,7 @@ function wireDriverConnection(c){
       driverJob.innerHTML='<b>'+escapeHtml(job.flight)+'</b><br>ลูกค้า: '+escapeHtml(job.name)+'<br>วันที่: '+escapeHtml(job.date)+'<br>ติดต่อ: '+escapeHtml(job.contact||'-')+
       (job.flightInfo?'<hr>ต้นทาง: '+escapeHtml(job.flightInfo.dep)+'<br>ปลายทาง: '+escapeHtml(job.flightInfo.arr)+'<br>สถานะ: <b>'+escapeHtml(job.flightInfo.status)+'</b><br>กำหนดถึง: '+escapeHtml(job.flightInfo.scheduled)+'<br>คาดว่าจะถึง: '+escapeHtml(job.flightInfo.estimated)+'<br>ดีเลย์: '+escapeHtml(job.flightInfo.delay):'');
     }
-    if(msg.type==='loc') showRemoteMap('driverMap',msg.lat,msg.lng,'ลูกค้า');
+    if(msg.type==='loc'){ remoteLocations.driver={lat:msg.lat,lng:msg.lng}; renderRoute('driver'); }
     if(msg.type==='stop') driverConnStatus('ลูกค้าหยุดแชร์ตำแหน่งแล้ว','warn');
     if(msg.type==='met'){ stopLocation('driver',false); alert('ยืนยันว่าเจอลูกค้าแล้ว'); }
   });
@@ -257,11 +258,13 @@ function startLocation(r){
   stopLocation(r,false);
   stopAts[r]=Date.now()+20*60*1000;
   watchers[r]=navigator.geolocation.watchPosition(p=>{
+    ownLocations[r]={lat:p.coords.latitude,lng:p.coords.longitude};
     send(r,{type:'loc',lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy,t:Date.now()});
+    renderRoute(r);
     // local mirror for one-phone testing
     if(customerPeer && !customerPeer.destroyed && customerCode.textContent===sessionCode){
-      if(r==='customer') showRemoteMap('driverMap',p.coords.latitude,p.coords.longitude,'ลูกค้า');
-      if(r==='driver') showRemoteMap('customerMap',p.coords.latitude,p.coords.longitude,'司機');
+      if(r==='customer'){ remoteLocations.driver={lat:p.coords.latitude,lng:p.coords.longitude}; renderRoute('driver'); }
+      if(r==='driver'){ remoteLocations.customer={lat:p.coords.latitude,lng:p.coords.longitude}; renderRoute('customer'); }
     }
     updateTimer(r);
   },e=>alert(r==='customer'?'請允許瀏覽器使用定位':'กรุณาอนุญาตการเข้าถึงตำแหน่งในเบราว์เซอร์'),{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
@@ -289,18 +292,42 @@ function metCustomer(){
   stopLocation('customer',false);
   alert('จบงาน — ปิดการแชร์ตำแหน่งแล้ว');
 }
-function showRemoteMap(id,lat,lng,label){
-  const prefix=id==='customerMap'?'customer':'driver';
+function renderRoute(viewer){
+  const own=ownLocations[viewer];
+  const remote=remoteLocations[viewer];
+  const prefix=viewer==='customer'?'customer':'driver';
   const textEl=document.getElementById(prefix+'MapText');
   const linkEl=document.getElementById(prefix+'MapLink');
-  const url='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(lat+','+lng);
-  if(textEl){
-    textEl.innerHTML='<b>'+escapeHtml(label)+'</b><div class="coords">'+lat.toFixed(5)+', '+lng.toFixed(5)+'</div><div class="small">อัปเดตล่าสุด '+new Date().toLocaleTimeString('th-TH')+'</div>';
+  if(!textEl||!linkEl)return;
+
+  if(!remote){
+    textEl.textContent=viewer==='customer'?'司機位置會顯示在這裡':'ตำแหน่งลูกค้าจะแสดงตรงนี้';
+    linkEl.classList.add('hidden');
+    return;
   }
-  if(linkEl){
-    linkEl.href=url;
-    linkEl.classList.remove('hidden');
+
+  const remoteLabel=viewer==='customer'?'司機':'ลูกค้า';
+  const ownLabel=viewer==='customer'?'我的位置':'ตำแหน่งของฉัน';
+  const updated=viewer==='customer'?'最後更新 ':'อัปเดตล่าสุด ';
+  const locale=viewer==='customer'?'zh-TW':'th-TH';
+
+  let html='<b>'+escapeHtml(remoteLabel)+'</b><div class="coords">'+remote.lat.toFixed(5)+', '+remote.lng.toFixed(5)+'</div>';
+  if(own){
+    html+='<div class="small">'+escapeHtml(ownLabel)+': '+own.lat.toFixed(5)+', '+own.lng.toFixed(5)+'</div>';
+  }else{
+    html+='<div class="small">'+(viewer==='customer'?'正在取得我的位置…':'กำลังหาตำแหน่งของฉัน…')+'</div>';
   }
+  html+='<div class="small">'+updated+new Date().toLocaleTimeString(locale)+'</div>';
+  textEl.innerHTML=html;
+
+  if(own){
+    linkEl.href='https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(own.lat+','+own.lng)+'&destination='+encodeURIComponent(remote.lat+','+remote.lng)+'&travelmode='+(viewer==='customer'?'walking':'driving');
+    linkEl.textContent=viewer==='customer'?'在 Google Maps 查看前往司機的路線':'เปิดเส้นทางไปหาลูกค้าใน Google Maps';
+  }else{
+    linkEl.href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(remote.lat+','+remote.lng);
+    linkEl.textContent=viewer==='customer'?'在 Google Maps 查看司機位置':'เปิดตำแหน่งลูกค้าใน Google Maps';
+  }
+  linkEl.classList.remove('hidden');
 }
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 window.addEventListener('beforeunload',()=>{

@@ -26,42 +26,42 @@ hr{border:0;border-top:1px solid #eee;margin:16px 0}
 </head>
 <body>
 <div class="wrap">
-<h1>Tour Pickup Live <span class="small">v0.5</span></h1>
-<div class="muted">Prototype แบบ P2P • ไม่มีฐานข้อมูลกลาง • แชร์ตำแหน่งสูงสุด 20 นาที</div>
+<h1>รับลูกค้าสนามบิน <span class="small">v0.6</span></h1>
+<div class="muted">ต้นแบบเชื่อมต่อโดยตรง • ยังไม่มีฐานข้อมูลกลาง • แชร์ตำแหน่งสูงสุด 20 นาที</div>
 
 <div class="tabs">
-  <button id="tabCustomer" class="on" onclick="showRole('customer')">旅客</button>
-  <button id="tabOperator" onclick="showRole('operator')">公司</button>
+  <button id="tabCustomer" class="on" onclick="showRole('customer')">ลูกค้า</button>
+  <button id="tabOperator" onclick="showRole('operator')">บริษัท</button>
   <button id="tabDriver" onclick="showRole('driver')">คนขับ</button>
 </div>
 
 <section id="customer" class="card">
-<h3>旅客資料</h3>
-<label>姓名</label><input id="cName" placeholder="例如：Lin">
-<label>航班號碼</label><input id="cFlight" placeholder="例如：CI833" autocapitalize="characters">
-<label>旅行日期</label><input id="cDate" type="date">
-<button style="width:100%;margin-top:10px" onclick="checkFlight()">查詢航班 / เช็กเที่ยวบิน</button>
-<div id="flightResult" class="status warn">尚未查詢航班</div>
-<label>LINE / 電話</label><input id="cContact" placeholder="LINE ID 或電話">
-<button class="primary" style="width:100%;margin-top:12px" onclick="createCustomerSession()">建立接送連線</button>
+<h3>ข้อมูลลูกค้า</h3>
+<label>ชื่อ</label><input id="cName" placeholder="เช่น Lin">
+<label>เลขเที่ยวบิน</label><input id="cFlight" placeholder="เช่น CI833" autocapitalize="characters">
+<label>วันที่เดินทาง</label><input id="cDate" type="date">
+<button style="width:100%;margin-top:10px" onclick="checkFlight()">เช็กเที่ยวบิน</button>
+<div id="flightResult" class="status warn">ยังไม่ได้เช็กเที่ยวบิน</div>
+<label>LINE / โทรศัพท์</label><input id="cContact" placeholder="LINE ID หรือเบอร์โทร">
+<button class="primary" style="width:100%;margin-top:12px" onclick="createCustomerSession()">สร้างการเชื่อมต่อรับลูกค้า</button>
 <div id="customerSession" class="hidden">
 <hr>
-<div class="muted">把這個連線碼給司機</div>
+<div class="muted">ส่งรหัสนี้ให้คนขับ</div>
 <div id="customerCode" class="code"></div>
-<div id="customerConn" class="status warn">等待司機連線…</div>
-<button style="width:100%;margin-top:10px" onclick="startLocation('customer')">允許分享位置 20 分鐘</button>
-<button class="danger" style="width:100%;margin-top:8px" onclick="stopLocation('customer')">停止分享</button>
-<div id="customerTimer" class="status">尚未分享位置</div>
-<div id="customerMap" class="mapbox"><div class="pin">司機位置會顯示在這裡</div></div>
+<div id="customerConn" class="status warn">รอคนขับเชื่อมต่อ…</div>
+<button style="width:100%;margin-top:10px" onclick="startLocation('customer')">อนุญาตแชร์ตำแหน่ง 20 นาที</button>
+<button class="danger" style="width:100%;margin-top:8px" onclick="stopLocation('customer')">หยุดแชร์</button>
+<div id="customerTimer" class="status">ยังไม่ได้แชร์ตำแหน่ง</div>
+<div id="customerMap" class="mapbox"><div class="pin" id="customerMapText">ตำแหน่งคนขับจะแสดงตรงนี้</div><a id="customerMapLink" class="maplink hidden" target="_blank" rel="noopener">เปิดใน Google Maps</a></div>
 </div>
 </section>
 
 <section id="operator" class="card hidden">
-<h3>公司 / 調度</h3>
-<div class="status">此版本不存資料到伺服器。<br>旅客建立連線碼後，把「連線碼 + 航班 + 姓名」傳給司機即可。</div>
-<label>航班狀態</label>
-<div id="operatorFlight" class="status warn">尚未查詢航班</div>
-<div class="small" style="margin-top:10px">旅客查詢航班後，這裡會同步顯示結果。</div>
+<h3>บริษัท / จัดรถ</h3>
+<div class="status">此版本不存資料到伺服器。<br>旅客建立連線碼後，把「連線碼 + 航班 + ชื่อ」傳給司機即可。</div>
+<label>สถานะเที่ยวบิน</label>
+<div id="operatorFlight" class="status warn">ยังไม่ได้เช็กเที่ยวบิน</div>
+<div class="small" style="margin-top:10px">เมื่อลูกค้าเช็กเที่ยวบิน ผลจะแสดงตรงนี้ด้วย</div>
 </section>
 
 <section id="driver" class="card hidden">
@@ -75,7 +75,7 @@ hr{border:0;border-top:1px solid #eee;margin:16px 0}
 <button style="width:100%;margin-top:10px" onclick="startLocation('driver')">อนุญาตแชร์ตำแหน่ง 20 นาที</button>
 <button class="danger" style="width:100%;margin-top:8px" onclick="stopLocation('driver')">หยุดแชร์</button>
 <div id="driverTimer" class="status">ยังไม่ได้แชร์ตำแหน่ง</div>
-<div id="driverMap" class="mapbox"><div class="pin">ตำแหน่งลูกค้าจะแสดงตรงนี้</div></div>
+<div id="driverMap" class="mapbox"><div class="pin" id="driverMapText">ตำแหน่งลูกค้าจะแสดงตรงนี้</div><a id="driverMapLink" class="maplink hidden" target="_blank" rel="noopener">เปิดใน Google Maps</a></div>
 <button class="primary" style="width:100%;margin-top:10px" onclick="metCustomer()">เจอลูกค้าแล้ว — ปิดการแชร์</button>
 </div>
 </section>
@@ -100,14 +100,14 @@ function sanitizePeerId(x){return x.replace(/[^A-Z0-9-]/g,'').toUpperCase()}
 async function checkFlight(){
   const flight=(cFlight.value||'').trim().toUpperCase();
   const date=(cDate.value||'').trim();
-  if(!flight||!date){alert('請先填航班號碼和旅行日期');return}
+  if(!flight||!date){alert('請先填เลขเที่ยวบิน和วันที่เดินทาง');return}
   let key=localStorage.getItem('aviationstack_key');
   if(!key){
-    key=prompt('輸入 Aviationstack API Key（只儲存在這台手機）');
+    key=prompt('ใส่ Aviationstack API Key (เก็บเฉพาะในมือถือเครื่องนี้)');
     if(!key)return;
     localStorage.setItem('aviationstack_key',key.trim());
   }
-  setFlightBox('查詢中…','warn');
+  setFlightBox('กำลังเช็ก…','warn');
   try{
     const url='https://api.aviationstack.com/v1/flights?access_key='+encodeURIComponent(key)+'&flight_iata='+encodeURIComponent(flight)+'&limit=20';
     const res=await fetch(url);
@@ -123,7 +123,7 @@ async function checkFlight(){
       return d===date || a===date;
     }) || list[0];
     if(!target){
-      setFlightBox('找不到這個航班 / ไม่พบเที่ยวบิน','warn');
+      setFlightBox('ไม่พบเที่ยวบินนี้','warn');
       return;
     }
     const x=target, dep=x.departure||{}, arr=x.arrival||{}, fl=x.flight||{};
@@ -150,7 +150,7 @@ async function checkFlight(){
     const op=document.getElementById('operatorFlight');
     if(op){op.className='status good';op.innerHTML=html;}
   }catch(e){
-    setFlightBox('查詢失敗：'+escapeHtml(e.message),'warn');
+    setFlightBox('เช็กไม่สำเร็จ: '+escapeHtml(e.message),'warn');
   }
 }
 function setFlightBox(text,kind){
@@ -161,12 +161,12 @@ function setFlightBox(text,kind){
 }
 function resetFlightKey(){
   localStorage.removeItem('aviationstack_key');
-  alert('已清除 API Key');
+  alert('ล้าง API Key แล้ว');
 }
 
 function createCustomerSession(){
   job=Object.assign({},job||{},{name:cName.value.trim(),flight:cFlight.value.trim().toUpperCase(),date:cDate.value,contact:cContact.value.trim()});
-  if(!job.name||!job.flight||!job.date){alert('請填姓名、航班號碼、旅行日期');return}
+  if(!job.name||!job.flight||!job.date){alert('請填ชื่อ、เลขเที่ยวบิน、วันที่เดินทาง');return}
   sessionCode=code();
   customerCode.textContent=sessionCode;
   customerSession.classList.remove('hidden');
@@ -174,17 +174,17 @@ function createCustomerSession(){
   customerPeer=new Peer('cust-'+sessionCode,{debug:1});
   customerPeer.on('open',()=>{
     customerConn=null;
-    customerConnStatus('等待司機連線…','warn');
+    customerConnStatus('รอคนขับเชื่อมต่อ…','warn');
   });
   customerPeer.on('connection',c=>{
     customerConn=c;
     wireCustomerConnection(c);
     c.on('open',()=>{
-      customerConnStatus('司機已連線','good');
+      customerConnStatus('คนขับเชื่อมต่อแล้ว','good');
       c.send({type:'job',job});
     });
   });
-  customerPeer.on('error',e=>customerConnStatus('連線錯誤：'+e.type,'warn'));
+  customerPeer.on('error',e=>customerConnStatus('เชื่อมต่อผิดพลาด: '+e.type,'warn'));
 }
 
 function connectDriver(){
@@ -219,9 +219,9 @@ function wireCustomerConnection(c){
   c.on('data',msg=>{
     if(msg.type==='loc') showRemoteMap('customerMap',msg.lat,msg.lng,'司機');
     if(msg.type==='stop') customerConnStatus('คนขับหยุดแชร์ตำแหน่งแล้ว','warn');
-    if(msg.type==='met'){ stopLocation('customer',false); alert('已確認接到旅客'); }
+    if(msg.type==='met'){ stopLocation('customer',false); alert('ยืนยันว่ารับลูกค้าแล้ว'); }
   });
-  c.on('close',()=>customerConnStatus('連線已中斷','warn'));
+  c.on('close',()=>customerConnStatus('การเชื่อมต่อถูกตัด','warn'));
 }
 function wireDriverConnection(c){
   c.on('data',msg=>{
@@ -253,7 +253,7 @@ function startLocation(r){
   if(!navigator.geolocation){alert('Browser นี้ไม่รองรับ GPS');return}
   const c=activeConn(r);
   const sameDevice=(customerPeer && !customerPeer.destroyed && customerCode.textContent===sessionCode && driverSession && !driverSession.classList.contains('hidden'));
-  if((!c||!c.open) && !sameDevice){alert(r==='customer'?'請先等待司機連線':'กรุณาเชื่อมต่อกับลูกค้าก่อน');return}
+  if((!c||!c.open) && !sameDevice){alert(r==='customer'?'กรุณารอคนขับเชื่อมต่อก่อน':'กรุณาเชื่อมต่อกับลูกค้าก่อน');return}
   stopLocation(r,false);
   stopAts[r]=Date.now()+20*60*1000;
   watchers[r]=navigator.geolocation.watchPosition(p=>{
@@ -264,7 +264,7 @@ function startLocation(r){
       if(r==='driver') showRemoteMap('customerMap',p.coords.latitude,p.coords.longitude,'司機');
     }
     updateTimer(r);
-  },e=>alert(r==='customer'?'請允許瀏覽器使用定位':'กรุณาอนุญาต Location ใน Browser'),{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+  },e=>alert(r==='customer'?'กรุณาอนุญาตการเข้าถึงตำแหน่งในเบราว์เซอร์':'กรุณาอนุญาตการเข้าถึงตำแหน่งในเบราว์เซอร์'),{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
   timers[r]=setInterval(()=>updateTimer(r),1000);
   updateTimer(r);
 }
@@ -272,7 +272,7 @@ function updateTimer(r){
   const left=Math.max(0,stopAts[r]-Date.now());
   const m=Math.floor(left/60000),s=Math.floor((left%60000)/1000);
   const el=document.getElementById(r==='customer'?'customerTimer':'driverTimer');
-  el.innerHTML=(r==='customer'?'位置分享剩餘 ':'เหลือเวลาแชร์ตำแหน่ง ')+'<span class="big">'+m+':'+String(s).padStart(2,'0')+'</span>';
+  el.innerHTML=(r==='customer'?'เหลือเวลาแชร์ตำแหน่ง ':'เหลือเวลาแชร์ตำแหน่ง ')+'<span class="big">'+m+':'+String(s).padStart(2,'0')+'</span>';
   if(left<=0) stopLocation(r);
 }
 function stopLocation(r,notify=true){
@@ -280,7 +280,7 @@ function stopLocation(r,notify=true){
   if(timers[r]){clearInterval(timers[r]);timers[r]=null}
   stopAts[r]=0;
   const el=document.getElementById(r==='customer'?'customerTimer':'driverTimer');
-  if(el) el.textContent=r==='customer'?'已停止分享位置':'หยุดแชร์ตำแหน่งแล้ว';
+  if(el) el.textContent=r==='customer'?'已หยุดแชร์位置':'หยุดแชร์ตำแหน่งแล้ว';
   if(notify)send(r,{type:'stop'});
 }
 function metCustomer(){
@@ -290,9 +290,17 @@ function metCustomer(){
   alert('จบงาน — ปิดการแชร์ตำแหน่งแล้ว');
 }
 function showRemoteMap(id,lat,lng,label){
+  const prefix=id==='customerMap'?'customer':'driver';
+  const textEl=document.getElementById(prefix+'MapText');
+  const linkEl=document.getElementById(prefix+'MapLink');
   const url='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(lat+','+lng);
-  const el=document.getElementById(id);
-  el.innerHTML='<div><b>'+escapeHtml(label)+'</b><div class="coords">'+lat.toFixed(5)+', '+lng.toFixed(5)+'</div><div class="small">อัปเดตล่าสุด '+new Date().toLocaleTimeString()+'</div><a class="maplink" href="'+url+'" target="_blank" rel="noopener">เปิดใน Google Maps</a></div>';
+  if(textEl){
+    textEl.innerHTML='<b>'+escapeHtml(label)+'</b><div class="coords">'+lat.toFixed(5)+', '+lng.toFixed(5)+'</div><div class="small">อัปเดตล่าสุด '+new Date().toLocaleTimeString('th-TH')+'</div>';
+  }
+  if(linkEl){
+    linkEl.href=url;
+    linkEl.classList.remove('hidden');
+  }
 }
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 window.addEventListener('beforeunload',()=>{

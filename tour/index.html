@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="description" content="旅客與泰國司機的臨時旅程溝通工具">
+  <title>旅途同行</title>
+  <link rel="stylesheet" href="./assets/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Tour home">
+      <span class="brand-mark" aria-hidden="true">T</span>
+      <span data-i18n="app.name">旅途同行</span>
+    </a>
+    <div class="status-pill" id="connectionStatus" aria-live="polite">
+      <span class="status-dot"></span>
+      <span data-i18n="status.ready">準備就緒</span>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="view" id="startView">
+      <div class="hero-card">
+        <p class="eyebrow" data-i18n="start.eyebrow">不需登入・不需下載</p>
+        <h1 data-i18n="start.title">掃描、確認、開始聯絡</h1>
+        <p class="hero-copy" data-i18n="start.subtitle">為旅客與泰國司機建立臨時且私密的旅程空間。</p>
+      </div>
+
+      <div class="role-grid" aria-label="Choose role">
+        <button class="role-card" type="button" data-role-choice="customer">
+          <span class="role-icon" aria-hidden="true">🧳</span>
+          <strong>我是旅客</strong>
+          <span>建立旅程名稱，讓司機掃描</span>
+        </button>
+        <button class="role-card" type="button" data-role-choice="driver">
+          <span class="role-icon" aria-hidden="true">🚐</span>
+          <strong>ฉันคือคนขับ</strong>
+          <span>สร้างทริปด้วยทะเบียนรถ</span>
+        </button>
+      </div>
+
+      <button class="secondary full" id="openScannerButton" type="button" data-i18n="start.scan">掃描對方的 QR Code</button>
+    </section>
+
+    <section class="view hidden" id="createView">
+      <button class="back-link" type="button" data-action="back">← <span data-i18n="common.back">返回</span></button>
+      <div class="panel">
+        <p class="eyebrow" id="createEyebrow"></p>
+        <h1 id="createTitle"></h1>
+        <form id="createForm">
+          <label for="tripLabel" id="tripLabelText"></label>
+          <input id="tripLabel" name="tripLabel" type="text" autocomplete="off" maxlength="80" required>
+          <p class="field-hint" id="tripLabelHint"></p>
+          <button class="primary full" id="createButton" type="submit"></button>
+        </form>
+      </div>
+    </section>
+
+    <section class="view hidden" id="qrView">
+      <div class="panel center">
+        <p class="eyebrow" data-i18n="pairing.waiting">等待對方加入</p>
+        <h1 data-i18n="pairing.showQr">請讓對方掃描</h1>
+        <div class="qr-frame"><canvas id="qrCanvas" width="260" height="260"></canvas></div>
+        <p class="pair-label" id="qrSessionLabel"></p>
+        <button class="secondary full" id="shareLinkButton" type="button" data-i18n="pairing.shareLink">分享連結</button>
+        <p class="muted" data-i18n="pairing.autoOpen">對方確認後，這裡會自動進入旅程。</p>
+      </div>
+    </section>
+
+    <section class="view hidden" id="scanView">
+      <button class="back-link" type="button" data-action="back">← <span data-i18n="common.back">返回</span></button>
+      <div class="panel">
+        <h1 data-i18n="scan.title">掃描 QR Code</h1>
+        <div class="scanner-wrap">
+          <video id="scannerVideo" playsinline muted></video>
+          <div class="scanner-guide" aria-hidden="true"></div>
+        </div>
+        <p class="muted" id="scannerHelp" data-i18n="scan.help">將 QR Code 放入框內。若相機無法使用，可貼上邀請連結。</p>
+        <form id="manualJoinForm">
+          <label for="manualJoinInput" data-i18n="scan.manualLabel">邀請連結或代碼</label>
+          <div class="inline-form">
+            <input id="manualJoinInput" type="text" autocomplete="off" required>
+            <button class="secondary" type="submit" data-i18n="scan.open">開啟</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="view hidden" id="confirmView">
+      <div class="panel center">
+        <p class="eyebrow" data-i18n="pairing.confirmEyebrow">請確認這是正確的旅程</p>
+        <div class="confirm-icon" aria-hidden="true">✓</div>
+        <h1 id="confirmLabel"></h1>
+        <p id="confirmRoleCopy"></p>
+        <button class="primary full" id="confirmPairButton" type="button" data-i18n="pairing.confirm">確認並加入</button>
+        <button class="text-button" id="rejectPairButton" type="button" data-i18n="pairing.notMine">這不是我的旅程</button>
+      </div>
+    </section>
+
+    <section class="view hidden" id="tripView">
+      <div class="trip-heading">
+        <div>
+          <p class="eyebrow" id="tripRoleEyebrow"></p>
+          <h1 id="activeTripLabel"></h1>
+        </div>
+        <button class="icon-button" id="tripMenuButton" type="button" aria-label="Trip menu">•••</button>
+      </div>
+
+      <div class="trip-actions" id="tripMenu" hidden>
+        <button class="secondary full" id="copyInviteButton" type="button" data-i18n="trip.copyInvite">複製旅程連結</button>
+        <button class="danger full" id="endSessionButton" type="button" data-i18n="trip.end">結束旅程</button>
+      </div>
+
+      <button class="summary-card" id="appointmentSummary" type="button">
+        <span class="summary-icon" aria-hidden="true">📅</span>
+        <span>
+          <strong data-i18n="appointment.title">集合時間</strong>
+          <span id="appointmentSummaryText" data-i18n="appointment.none">尚未建立</span>
+        </span>
+        <span aria-hidden="true">›</span>
+      </button>
+
+      <a class="summary-card" id="mapLink" href="./map.html">
+        <span class="summary-icon" aria-hidden="true">📍</span>
+        <span>
+          <strong data-i18n="map.title">即時位置</strong>
+          <span id="locationSummaryText" data-i18n="map.closed">尚未分享</span>
+        </span>
+        <span aria-hidden="true">›</span>
+      </a>
+
+      <section class="chat-card" aria-labelledby="chatHeading">
+        <div class="section-heading">
+          <div>
+            <h2 id="chatHeading" data-i18n="chat.title">聊天</h2>
+            <p data-i18n="chat.subtitle">像平常一樣輸入訊息</p>
+          </div>
+          <label class="toggle hidden" id="drivingModeWrap">
+            <input id="drivingMode" type="checkbox">
+            <span data-i18n="voice.drivingMode">โหมดขับรถ</span>
+          </label>
+        </div>
+        <div class="message-list" id="messageList" aria-live="polite"></div>
+        <div class="intent-row" id="intentRow" aria-label="Suggested messages"></div>
+        <form class="composer" id="chatForm">
+          <label class="sr-only" for="chatInput" data-i18n="chat.inputLabel">輸入訊息</label>
+          <textarea id="chatInput" rows="1" maxlength="1000" data-i18n-placeholder="chat.placeholder" required></textarea>
+          <button class="send-button" type="submit" aria-label="Send">➤</button>
+        </form>
+      </section>
+    </section>
+
+    <dialog id="appointmentDialog">
+      <form method="dialog" class="dialog-card" id="appointmentForm">
+        <div class="dialog-heading">
+          <h2 data-i18n="appointment.new">新增集合時間</h2>
+          <button class="icon-button" value="cancel" formnovalidate aria-label="Close">×</button>
+        </div>
+        <label for="appointmentPlace" data-i18n="appointment.place">地點</label>
+        <input id="appointmentPlace" maxlength="160" required>
+        <div class="two-columns">
+          <label><span data-i18n="appointment.date">日期</span><input id="appointmentDate" type="date" required></label>
+          <label><span data-i18n="appointment.time">時間</span><input id="appointmentTime" type="time" required></label>
+        </div>
+        <label for="appointmentNote" data-i18n="appointment.note">備註（選填）</label>
+        <textarea id="appointmentNote" rows="3" maxlength="280"></textarea>
+        <button class="primary full" id="saveAppointmentButton" value="default" data-i18n="appointment.send">送出等待確認</button>
+      </form>
+    </dialog>
+
+    <dialog id="pendingAppointmentDialog">
+      <div class="dialog-card">
+        <div class="dialog-heading">
+          <h2 data-i18n="appointment.pending">等待確認</h2>
+          <button class="icon-button" type="button" data-close-dialog="pendingAppointmentDialog">×</button>
+        </div>
+        <div class="appointment-detail" id="pendingAppointmentDetail"></div>
+        <button class="primary full" id="confirmAppointmentButton" type="button" data-i18n="appointment.confirm">確認集合時間</button>
+      </div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  </main>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

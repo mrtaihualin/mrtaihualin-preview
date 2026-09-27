@@ -12,5 +12,5 @@ export const TOUR_CONFIG = Object.freeze({
   localeStorageKey: 'tour.v1.locale',
   supportedLocales: ['zh-TW', 'zh-CN', 'th', 'en', 'ja'],
   exposedLocales: ['zh-TW', 'th', 'ja', 'en'],
-  customerLocales: ['zh-TW', 'ja', 'en']
+  userLocales: ['zh-TW', 'th', 'ja', 'en']
 });

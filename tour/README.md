@@ -10,7 +10,8 @@ Standalone mobile-first module for temporary communication between a foreign tou
 - Data access: token-gated Postgres RPC functions; underlying tables are private
 - Transport: 2.5-second polling (no P2P and no localStorage data cache)
 - Session recovery: localStorage keeps only the session id, participant role, UI locale, and unguessable participant token
-- Role onboarding: the first Chinese Customer / Japanese Customer / English Customer / Thai Driver choice is remembered locally; later opens show only that role and language until the user explicitly changes role
+- Language-first onboarding: each device chooses Traditional Chinese, Thai, Japanese, or English, then chooses Traveler or Driver; both choices are remembered locally
+- Single-language UI: after language selection, every visible app screen uses only that device's selected language, independent of the other person's choice
 - Session lifetime: expires after seven days without explicit foreground use or a meaningful write
 - Location consent: one request, one acceptance, exactly 20 minutes; a new request is required to extend
 
@@ -70,7 +71,7 @@ The API test creates disposable sessions, exercises both creator directions, and
 
 - No real name, phone, email, LINE ID, passport, login, or account is required.
 - QR join tokens stop working immediately after pairing.
-- A QR join always infers the opposite role from the creator. A fresh Customer is asked only whether to use Traditional Chinese, Japanese, or English; a Driver is assigned Thai automatically.
+- A QR join always infers the opposite role from the creator. A fresh device chooses its language before confirming; it does not need to choose the inferred role again.
 - Participant tokens authorize only one role in one session.
 - Message and appointment text is rendered with `textContent`; user text is never inserted as HTML.
 - Only the latest location per role exists. It is deleted when sharing stops, expires, the parties mark “met,” or the session ends.

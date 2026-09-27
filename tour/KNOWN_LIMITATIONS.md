@@ -7,6 +7,6 @@
 - Polling can take up to about 2.5 seconds to show remote changes.
 - Flight status is intentionally hidden because no reliable server-side flight provider is configured.
 - MVP has one active session per browser profile and no persistent user identity.
-- The remembered Customer/Driver role and Customer language are local to one browser profile. They are convenience preferences, not identity verification, and can be changed from the role page.
+- The remembered Customer/Driver role and selected language are local to one browser profile. They are convenience preferences, not identity verification, and can be changed from the role page.
 - The PWA caches only the same-origin app shell. Supabase actions, QR/Leaflet CDN modules, OpenStreetMap tiles, GPS sharing, and live updates still require internet access.
 - Appointment reschedule, cancellation, history, route planning, accounts, teams, payments, and LINE integration are intentionally not implemented.

@@ -8,8 +8,8 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="旅途同行">
-  <title>旅途同行</title>
+  <meta name="apple-mobile-web-app-title" content="Tour">
+  <title>Tour</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
@@ -17,18 +17,31 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="./" aria-label="Tour home">
+    <a class="brand" href="./" aria-label="Tour home" data-i18n-aria-label="app.home">
       <span class="brand-mark" aria-hidden="true">T</span>
-      <span data-i18n="app.name">旅途同行</span>
+      <span id="brandName" data-i18n="app.name">Tour</span>
     </a>
     <div class="status-pill" id="connectionStatus" aria-live="polite">
       <span class="status-dot"></span>
-      <span data-i18n="status.ready">準備就緒</span>
+      <span data-i18n="status.ready">🌐</span>
     </div>
   </header>
 
   <main class="shell">
     <section class="view" id="startView">
+      <div class="panel center language-picker" aria-labelledby="languagePickerTitle">
+        <span class="language-icon" aria-hidden="true">🌐</span>
+        <h1 class="sr-only" id="languagePickerTitle">Choose your language</h1>
+        <div class="language-options">
+          <button class="secondary full" type="button" data-locale-choice="zh-TW">繁體中文</button>
+          <button class="secondary full" type="button" data-locale-choice="th">ภาษาไทย</button>
+          <button class="secondary full" type="button" data-locale-choice="ja">日本語</button>
+          <button class="secondary full" type="button" data-locale-choice="en">English</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="view hidden" id="roleView">
       <div class="hero-card">
         <p class="eyebrow" data-i18n="start.eyebrow">不需登入・不需下載</p>
         <h1 data-i18n="start.title">掃描、確認、開始聯絡</h1>
@@ -44,28 +57,20 @@
         <span aria-hidden="true">›</span>
       </button>
 
-      <p class="role-note">選擇一次後會記住・一度選ぶと記憶・Choose once・เลือกครั้งเดียว</p>
+      <button class="back-link" id="changeLanguageButton" type="button">← <span data-i18n="language.change">切換語言</span></button>
+      <h2 class="role-title" data-i18n="role.title">選擇身分</h2>
+      <p class="role-note" data-i18n="role.note">選擇後會記住，下次可直接開啟。</p>
 
-      <div class="role-grid" aria-label="Choose role">
-        <button class="role-card" type="button" data-role-choice="customer" data-locale="zh-TW">
+      <div class="role-grid" aria-label="Choose role" data-i18n-aria-label="role.title">
+        <button class="role-card" type="button" data-role-choice="customer">
           <span class="role-icon" aria-hidden="true">🧳</span>
-          <strong>我是旅客</strong>
-          <span>建立旅程名稱，讓司機掃描</span>
+          <strong data-i18n="role.customerTitle">我是旅客</strong>
+          <span data-i18n="role.customerHint">建立旅程名稱，讓司機掃描</span>
         </button>
-        <button class="role-card" type="button" data-role-choice="customer" data-locale="ja">
-          <span class="role-icon" aria-hidden="true">🧳</span>
-          <strong>日本人旅行者</strong>
-          <span>旅行名を作成し、ドライバーにスキャンしてもらう</span>
-        </button>
-        <button class="role-card" type="button" data-role-choice="customer" data-locale="en">
-          <span class="role-icon" aria-hidden="true">🧳</span>
-          <strong>English traveler</strong>
-          <span>Create a trip and show the QR to your driver</span>
-        </button>
-        <button class="role-card" type="button" data-role-choice="driver" data-locale="th">
+        <button class="role-card" type="button" data-role-choice="driver">
           <span class="role-icon" aria-hidden="true">🚐</span>
-          <strong>ฉันคือคนขับ</strong>
-          <span>สร้างทริปด้วยทะเบียนรถ</span>
+          <strong data-i18n="role.driverTitle">我是司機</strong>
+          <span data-i18n="role.driverHint">用車牌建立旅程，讓旅客掃描</span>
         </button>
       </div>
 
@@ -131,27 +136,13 @@
       </div>
     </section>
 
-    <section class="view hidden" id="languageView">
-      <button class="back-link" id="languageBackButton" type="button">← <span>Back・กลับ・戻る・返回</span></button>
-      <div class="panel center">
-        <p class="eyebrow">LANGUAGE</p>
-        <h1>Choose language<br><span lang="ja">言語を選択</span></h1>
-        <p class="muted">選擇語言・เลือกภาษาของนักท่องเที่ยว</p>
-        <div class="language-options">
-          <button class="primary full" type="button" data-customer-locale="zh-TW">繁體中文</button>
-          <button class="secondary full" type="button" data-customer-locale="ja">日本語</button>
-          <button class="secondary full" type="button" data-customer-locale="en">English</button>
-        </div>
-      </div>
-    </section>
-
     <section class="view hidden" id="tripView">
       <div class="trip-heading">
         <div>
           <p class="eyebrow" id="tripRoleEyebrow"></p>
           <h1 id="activeTripLabel"></h1>
         </div>
-        <button class="icon-button" id="tripMenuButton" type="button" aria-label="Trip menu">•••</button>
+        <button class="icon-button" id="tripMenuButton" type="button" aria-label="Trip menu" data-i18n-aria-label="trip.menu">•••</button>
       </div>
 
       <div class="trip-actions" id="tripMenu" hidden>
@@ -189,11 +180,11 @@
           </label>
         </div>
         <div class="message-list" id="messageList" aria-live="polite"></div>
-        <div class="intent-row" id="intentRow" aria-label="Suggested messages"></div>
+        <div class="intent-row" id="intentRow" aria-label="Suggested messages" data-i18n-aria-label="chat.suggested"></div>
         <form class="composer" id="chatForm">
           <label class="sr-only" for="chatInput" data-i18n="chat.inputLabel">輸入訊息</label>
           <textarea id="chatInput" rows="1" maxlength="1000" data-i18n-placeholder="chat.placeholder" required></textarea>
-          <button class="send-button" type="submit" aria-label="Send">➤</button>
+          <button class="send-button" type="submit" aria-label="Send" data-i18n-aria-label="chat.send">➤</button>
         </form>
       </section>
     </section>
@@ -202,7 +193,7 @@
       <form method="dialog" class="dialog-card" id="appointmentForm">
         <div class="dialog-heading">
           <h2 data-i18n="appointment.new">新增集合時間</h2>
-          <button class="icon-button" value="cancel" formnovalidate aria-label="Close">×</button>
+          <button class="icon-button" value="cancel" formnovalidate aria-label="Close" data-i18n-aria-label="common.close">×</button>
         </div>
         <label for="appointmentPlace" data-i18n="appointment.place">地點</label>
         <input id="appointmentPlace" maxlength="160" required>

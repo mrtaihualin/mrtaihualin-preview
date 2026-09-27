@@ -108,7 +108,7 @@ export function saveSession(session) {
     sessionId: String(session.sessionId),
     accessToken: String(session.accessToken),
     role,
-    locale: role === 'driver' ? 'th' : TOUR_CONFIG.customerLocales.includes(session.locale) ? session.locale : 'zh-TW',
+    locale: TOUR_CONFIG.userLocales.includes(session.locale) ? session.locale : role === 'driver' ? 'th' : 'zh-TW',
     joinToken: session.joinToken ? String(session.joinToken) : null
   };
   localStorage.setItem(TOUR_CONFIG.storageKey, JSON.stringify(safeSession));
@@ -121,7 +121,7 @@ export function loadSession() {
     if (!stored?.sessionId || !stored?.accessToken || !['customer', 'driver'].includes(stored.role)) return null;
     return {
       ...stored,
-      locale: stored.role === 'driver' ? 'th' : TOUR_CONFIG.customerLocales.includes(stored.locale) ? stored.locale : 'zh-TW'
+      locale: TOUR_CONFIG.userLocales.includes(stored.locale) ? stored.locale : stored.role === 'driver' ? 'th' : 'zh-TW'
     };
   } catch {
     return null;

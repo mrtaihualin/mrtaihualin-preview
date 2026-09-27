@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js';
+import { TOUR_CONFIG } from './config.js?v=6';
 
 export const UI = Object.freeze({
   'zh-TW': {

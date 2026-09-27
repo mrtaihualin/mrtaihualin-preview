@@ -1,7 +1,7 @@
-import { TOUR_CONFIG } from './config.js';
-import { localeForRole, setLocale, t } from './i18n.js';
-import { TourApi, clearSession, loadSession } from './api.js';
-import { registerTourServiceWorker } from './pwa.js';
+import { TOUR_CONFIG } from './config.js?v=6';
+import { localeForRole, setLocale, t } from './i18n.js?v=6';
+import { TourApi, clearSession, loadSession } from './api.js?v=6';
+import { registerTourServiceWorker } from './pwa.js?v=6';
 
 registerTourServiceWorker();
 

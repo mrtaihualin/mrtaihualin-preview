@@ -5,7 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0f766e">
   <meta name="description" content="旅客與泰國司機的臨時旅程溝通工具">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="旅途同行">
   <title>旅途同行</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="./assets/styles.css">
 </head>
 <body>
@@ -27,6 +34,15 @@
         <h1 data-i18n="start.title">掃描、確認、開始聯絡</h1>
         <p class="hero-copy" data-i18n="start.subtitle">為旅客與泰國司機建立臨時且私密的旅程空間。</p>
       </div>
+
+      <button class="install-card hidden" id="installAppButton" type="button">
+        <span class="install-icon" aria-hidden="true">↧</span>
+        <span>
+          <strong data-i18n="pwa.install">加到手機主畫面</strong>
+          <small data-i18n="pwa.installHint">下次像 App 一樣直接開啟</small>
+        </span>
+        <span aria-hidden="true">›</span>
+      </button>
 
       <div class="role-grid" aria-label="Choose role">
         <button class="role-card" type="button" data-role-choice="customer">

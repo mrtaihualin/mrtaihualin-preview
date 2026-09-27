@@ -2,6 +2,14 @@
 
 Use Phone A and Phone B on different networks. Use a private/incognito browser profile when repeating a creator-direction test.
 
+## PWA installation
+
+1. Open `/tour/` over HTTPS and verify the install card appears when the browser makes installation available.
+2. Install on Android/Chrome and verify the home-screen icon opens `/tour/` without browser chrome.
+3. On iPhone/Safari use Share → Add to Home Screen and verify the icon opens in standalone mode.
+4. Reopen after a refresh and verify an active session still recovers normally.
+5. Temporarily disconnect the network and verify the cached start screen reopens; verify live actions clearly fail rather than showing stale backend data.
+
 ## Customer creates
 
 1. On Phone A choose Customer, enter a display name, and create the trip.

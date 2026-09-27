@@ -44,15 +44,20 @@
         <span aria-hidden="true">›</span>
       </button>
 
-      <p class="role-note">首次選擇後會記住此頁・เลือกครั้งแรก ระบบจะจำหน้านี้ไว้</p>
+      <p class="role-note">選擇一次後會記住・一度選ぶと記憶します・เลือกครั้งเดียว ระบบจะจำไว้</p>
 
       <div class="role-grid" aria-label="Choose role">
-        <button class="role-card" type="button" data-role-choice="customer">
+        <button class="role-card" type="button" data-role-choice="customer" data-locale="zh-TW">
           <span class="role-icon" aria-hidden="true">🧳</span>
           <strong>我是旅客</strong>
           <span>建立旅程名稱，讓司機掃描</span>
         </button>
-        <button class="role-card" type="button" data-role-choice="driver">
+        <button class="role-card" type="button" data-role-choice="customer" data-locale="ja">
+          <span class="role-icon" aria-hidden="true">🧳</span>
+          <strong>日本人旅行者</strong>
+          <span>旅行名を作成し、ドライバーにスキャンしてもらう</span>
+        </button>
+        <button class="role-card driver-choice" type="button" data-role-choice="driver" data-locale="th">
           <span class="role-icon" aria-hidden="true">🚐</span>
           <strong>ฉันคือคนขับ</strong>
           <span>สร้างทริปด้วยทะเบียนรถ</span>
@@ -118,6 +123,19 @@
         <p id="confirmRoleCopy"></p>
         <button class="primary full" id="confirmPairButton" type="button" data-i18n="pairing.confirm">確認並加入</button>
         <button class="text-button" id="rejectPairButton" type="button" data-i18n="pairing.notMine">這不是我的旅程</button>
+      </div>
+    </section>
+
+    <section class="view hidden" id="languageView">
+      <button class="back-link" id="languageBackButton" type="button">← <span>กลับ・戻る・返回</span></button>
+      <div class="panel center">
+        <p class="eyebrow">LANGUAGE</p>
+        <h1>選擇語言<br><span lang="ja">言語を選択</span></h1>
+        <p class="muted">เลือกภาษาของนักท่องเที่ยว</p>
+        <div class="language-options">
+          <button class="primary full" type="button" data-customer-locale="zh-TW">繁體中文</button>
+          <button class="secondary full" type="button" data-customer-locale="ja">日本語</button>
+        </div>
       </div>
     </section>
 

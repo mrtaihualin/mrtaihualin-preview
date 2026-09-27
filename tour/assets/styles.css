@@ -233,6 +233,13 @@ a { color: inherit; text-decoration: none; }
 .role-card strong { font-size: 1.05rem; }
 .role-card span:last-child { min-height: 38px; color: var(--muted); font-size: .8rem; line-height: 1.4; }
 .role-icon { margin-bottom: auto; font-size: 2rem; }
+.driver-choice { grid-column: 1 / -1; min-height: 125px; }
+
+.language-options {
+  margin-top: 20px;
+  display: grid;
+  gap: 10px;
+}
 
 .panel, .chat-card {
   padding: 22px;
@@ -452,9 +459,10 @@ dialog::backdrop { background: rgba(4, 20, 19, .53); backdrop-filter: blur(3px);
   .map-sheet { left: 50%; right: auto; width: min(560px, calc(100% - 24px)); transform: translateX(-50%); }
 }
 
-@media (max-width: 390px) {
+@media (max-width: 340px) {
   .role-grid { grid-template-columns: 1fr; }
   .role-card { min-height: 120px; }
+  .driver-choice { grid-column: auto; }
   .two-columns { grid-template-columns: 1fr; gap: 0; }
   .map-actions { grid-template-columns: 1fr; }
   .map-actions > * { grid-column: 1 !important; }

@@ -26,15 +26,15 @@ Use Phone A and Phone B on different networks. Use a private/incognito browser p
 
 1. On Phone A choose Customer, enter a display name, and create the trip.
 2. Confirm a QR appears.
-3. On Phone B scan it, verify the display name, and confirm as Driver.
-4. Verify both phones open the same paired trip.
+3. On Phone B scan it, verify the display name, enter the Driver vehicle plate, and confirm.
+4. Verify both phones open the same paired trip and both the customer display name and vehicle plate are shown.
 
 ## Driver creates
 
 1. End the first trip.
 2. On Phone B choose Driver, enter only a vehicle plate, and create the trip.
-3. On Phone A scan it, verify the plate, and confirm as Customer.
-4. Verify both phones open the same paired trip.
+3. On Phone A scan it, verify the plate, enter the Customer display name or group name, and confirm.
+4. Verify both phones open the same paired trip and both the customer display name and vehicle plate are shown.
 
 ## Chat and voice
 

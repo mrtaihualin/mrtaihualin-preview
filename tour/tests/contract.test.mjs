@@ -62,22 +62,32 @@ test('session recovery stores credentials only, never backend data', async () =>
   assert.match(api, /sessionId/);
   assert.match(api, /accessToken/);
   assert.match(api, /role/);
+  assert.match(api, /locale/);
   assert.doesNotMatch(api, /localStorage\.setItem[^\n]+messages/);
   assert.doesNotMatch(api, /localStorage\.setItem[^\n]+appointments/);
   assert.doesNotMatch(api, /localStorage\.setItem[^\n]+locations/);
 });
 
-test('first role choice is remembered and QR joins infer the opposite role', async () => {
+test('first role and customer language are remembered and QR joins infer the opposite role', async () => {
   const config = await text('js/config.js');
   const index = await text('index.html');
   const app = await text('js/app.js');
 
   assert.match(config, /roleStorageKey: 'tour\.v1\.role'/);
+  assert.match(config, /localeStorageKey: 'tour\.v1\.locale'/);
+  assert.match(config, /customerLocales: \['zh-TW', 'ja'\]/);
   assert.match(index, /id="changeRoleButton"/);
   assert.match(index, /id="scanFromRoleButton"/);
+  assert.match(index, /data-role-choice="customer" data-locale="ja"/);
+  assert.match(index, /id="languageView"/);
+  assert.match(index, /data-customer-locale="zh-TW"/);
+  assert.match(index, /data-customer-locale="ja"/);
   assert.match(app, /localStorage\.setItem\(TOUR_CONFIG\.roleStorageKey, role\)/);
+  assert.match(app, /localStorage\.setItem\(TOUR_CONFIG\.localeStorageKey, normalizedLocale\)/);
   assert.match(app, /localStorage\.removeItem\(TOUR_CONFIG\.roleStorageKey\)/);
+  assert.match(app, /localStorage\.removeItem\(TOUR_CONFIG\.localeStorageKey\)/);
   assert.match(app, /selectedRole = preview\.creatorRole === 'driver' \? 'customer' : 'driver'/);
+  assert.match(app, /selectedRole === 'customer' && preferredRole !== 'customer'/);
   assert.match(app, /showRoleHome\(\)/);
 });
 
@@ -100,6 +110,16 @@ test('locale and intent architecture includes all planned locales', async () => 
   const i18n = await text('js/i18n.js');
   for (const locale of ['zh-TW', 'zh-CN', 'th', 'en', 'ja']) assert.match(config, new RegExp(locale));
   for (const key of ['on_my_way', 'arrived', 'where_are_you', 'please_wait']) assert.match(i18n, new RegExp(key));
+  assert.match(config, /exposedLocales: \['zh-TW', 'th', 'ja'\]/);
+  assert.match(i18n, /ja: '向かっています'/);
+  assert.match(i18n, /'app\.name': '旅の仲間'/);
+});
+
+test('every exposed locale has the same UI keys and every intent has Japanese', async () => {
+  const { INTENTS, UI } = await import('../js/i18n.js');
+  const referenceKeys = Object.keys(UI['zh-TW']).sort();
+  for (const locale of ['th', 'ja']) assert.deepEqual(Object.keys(UI[locale]).sort(), referenceKeys);
+  for (const translations of Object.values(INTENTS)) assert.equal(typeof translations.ja, 'string');
 });
 
 test('migration keeps tables private and enforces required expiry', async () => {

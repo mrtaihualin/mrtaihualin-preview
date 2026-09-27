@@ -12,11 +12,13 @@ Use Phone A and Phone B on different networks. Use a private/incognito browser p
 
 ## Remembered role
 
-1. On a fresh browser choose Customer once and verify the Customer create page opens.
-2. Close and reopen `/tour/`; verify only the Customer create/join page appears and the Driver card is not shown.
-3. Tap Change role, choose Driver, close and reopen; verify only the Driver create/join page appears in Thai.
-4. Create a trip as Driver and scan its QR on a fresh second phone; verify the second phone is assigned Customer automatically without a role question.
-5. End the trip and verify each phone returns to its own remembered role page.
+1. On a fresh browser choose Chinese Customer once and verify the Traditional Chinese Customer create page opens.
+2. Close and reopen `/tour/`; verify only that Customer create/join page appears and the other choices are not shown.
+3. Tap Change role, choose Japanese Customer, close and reopen; verify the Customer create/join page reopens in Japanese.
+4. Tap Change role, choose Driver, close and reopen; verify only the Driver create/join page appears in Thai.
+5. Create a trip as Driver and open its QR on a fresh second phone; verify the second phone is assigned Customer and asked only `繁體中文` or `日本語`.
+6. Choose Japanese, confirm, refresh, and verify the Japanese trip returns without another language question.
+7. End the trip and verify each phone returns to its own remembered role-and-language page.
 
 ## Customer creates
 
@@ -36,9 +38,10 @@ Use Phone A and Phone B on different networks. Use a private/incognito browser p
 
 1. Send a Chinese standard phrase from Customer and verify Driver sees Thai.
 2. Send a Thai standard phrase from Driver and verify Customer sees Traditional Chinese.
-3. Send text containing `<img src=x onerror=alert(1)>`; verify it appears as text and no script runs.
-4. On Driver tap the read-aloud button and verify Thai speech.
-5. Optionally enable driving mode and verify a new translated Customer phrase is read once.
+3. Repeat with a Japanese Customer: send a Japanese standard phrase and verify Driver sees Thai; send Thai and verify Customer sees Japanese.
+4. Send text containing `<img src=x onerror=alert(1)>`; verify it appears as text and no script runs.
+5. On Driver tap the read-aloud button and verify Thai speech.
+6. Optionally enable driving mode and verify a new translated Customer phrase is read once.
 
 ## Appointment
 

@@ -27,7 +27,9 @@ const toast = document.querySelector('#toast');
 
 let session = loadSession();
 let preferredRole = loadPreferredRole();
+let preferredLocale = loadPreferredLocale(preferredRole);
 let selectedRole = session?.role || preferredRole;
+let selectedLocale = localeForRole(selectedRole, session?.locale || preferredLocale);
 let pendingJoin = null;
 let currentState = null;
 let pollTimer = null;
@@ -40,16 +42,28 @@ function loadPreferredRole() {
   return ['customer', 'driver'].includes(role) ? role : null;
 }
 
-function savePreferredRole(role) {
+function loadPreferredLocale(role) {
+  if (role === 'driver') return 'th';
+  const locale = localStorage.getItem(TOUR_CONFIG.localeStorageKey);
+  if (TOUR_CONFIG.customerLocales.includes(locale)) return locale;
+  return role === 'customer' ? 'zh-TW' : null;
+}
+
+function savePreferredRole(role, locale = null) {
   if (!['customer', 'driver'].includes(role)) return null;
+  const normalizedLocale = localeForRole(role, locale);
   localStorage.setItem(TOUR_CONFIG.roleStorageKey, role);
+  localStorage.setItem(TOUR_CONFIG.localeStorageKey, normalizedLocale);
   preferredRole = role;
-  return role;
+  preferredLocale = normalizedLocale;
+  return { role, locale: normalizedLocale };
 }
 
 function clearPreferredRole() {
   localStorage.removeItem(TOUR_CONFIG.roleStorageKey);
+  localStorage.removeItem(TOUR_CONFIG.localeStorageKey);
   preferredRole = null;
+  preferredLocale = null;
 }
 
 function showView(id) {
@@ -322,9 +336,10 @@ async function createTrip(event) {
       sessionId: created.sessionId,
       accessToken: created.accessToken,
       role: selectedRole,
+      locale: selectedLocale,
       joinToken: created.joinToken
     });
-    setLocale(localeForRole(selectedRole));
+    setLocale(selectedLocale);
     document.querySelector('#qrSessionLabel').textContent = label;
     await renderQr(inviteUrl(created.joinToken));
     showView('qrView');
@@ -376,18 +391,37 @@ async function openJoinValue(value) {
     const preview = await TourApi.previewSession(joinToken);
     pendingJoin = { joinToken, preview };
     selectedRole = preview.creatorRole === 'driver' ? 'customer' : 'driver';
-    setLocale(localeForRole(selectedRole));
-    document.querySelector('#confirmLabel').textContent = preview.vehiclePlate || preview.tripDisplayName;
-    document.querySelector('#confirmRoleCopy').textContent = roleCopy(
-      preview.creatorRole,
-      preview.vehiclePlate || preview.tripDisplayName
-    );
     setConnection('online', 'status.online');
-    showView('confirmView');
+    if (selectedRole === 'customer' && preferredRole !== 'customer') {
+      showView('languageView');
+      return;
+    }
+    selectedLocale = localeForRole(selectedRole, preferredRole === selectedRole ? preferredLocale : null);
+    showPairingConfirmation();
   } catch (error) {
     setConnection('offline', 'status.offline');
     notify(humanError(error));
   }
+}
+
+function showPairingConfirmation() {
+  if (!pendingJoin) return;
+  const { preview } = pendingJoin;
+  setLocale(selectedLocale);
+  document.querySelector('#confirmLabel').textContent = preview.vehiclePlate || preview.tripDisplayName;
+  document.querySelector('#confirmRoleCopy').textContent = roleCopy(
+    preview.creatorRole,
+    preview.vehiclePlate || preview.tripDisplayName
+  );
+  showView('confirmView');
+}
+
+function chooseJoinLanguage(locale) {
+  if (!TOUR_CONFIG.customerLocales.includes(locale)) return;
+  selectedRole = 'customer';
+  selectedLocale = locale;
+  savePreferredRole(selectedRole, selectedLocale);
+  showPairingConfirmation();
 }
 
 async function confirmPairing() {
@@ -400,9 +434,10 @@ async function confirmPairing() {
       sessionId: confirmed.sessionId,
       accessToken: confirmed.accessToken,
       role: selectedRole,
+      locale: selectedLocale,
       joinToken: null
     });
-    savePreferredRole(selectedRole);
+    savePreferredRole(selectedRole, selectedLocale);
     history.replaceState({}, '', new URL('./', window.location.href).pathname);
     pendingJoin = null;
     notify(t('pairing.paired'));
@@ -492,11 +527,12 @@ async function shareInvite() {
   }
 }
 
-function selectRole(role, { persist = true, focus = true } = {}) {
+function selectRole(role, { locale = null, persist = true, focus = true } = {}) {
   if (!['customer', 'driver'].includes(role)) return;
   selectedRole = role;
-  if (persist) savePreferredRole(role);
-  setLocale(localeForRole(role));
+  selectedLocale = localeForRole(role, locale || (preferredRole === role ? preferredLocale : null));
+  if (persist) savePreferredRole(role, selectedLocale);
+  setLocale(selectedLocale);
   document.querySelector('#createEyebrow').textContent = t(`create.${role}Eyebrow`);
   document.querySelector('#createTitle').textContent = t(`create.${role}Title`);
   document.querySelector('#tripLabelText').textContent = t(`create.${role}Label`);
@@ -510,7 +546,7 @@ function selectRole(role, { persist = true, focus = true } = {}) {
 
 function showRoleHome({ focus = false } = {}) {
   if (preferredRole) {
-    selectRole(preferredRole, { persist: false, focus });
+    selectRole(preferredRole, { locale: preferredLocale, persist: false, focus });
     return;
   }
   selectedRole = null;
@@ -527,7 +563,10 @@ function changeRole() {
 
 function wireEvents() {
   document.querySelectorAll('[data-role-choice]').forEach((button) => {
-    button.addEventListener('click', () => selectRole(button.dataset.roleChoice));
+    button.addEventListener('click', () => selectRole(button.dataset.roleChoice, { locale: button.dataset.locale }));
+  });
+  document.querySelectorAll('[data-customer-locale]').forEach((button) => {
+    button.addEventListener('click', () => chooseJoinLanguage(button.dataset.customerLocale));
   });
   document.querySelectorAll('[data-action="back"]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -536,6 +575,11 @@ function wireEvents() {
     });
   });
   document.querySelector('#changeRoleButton').addEventListener('click', changeRole);
+  document.querySelector('#languageBackButton').addEventListener('click', () => {
+    pendingJoin = null;
+    history.replaceState({}, '', new URL('./', window.location.href).pathname);
+    showRoleHome();
+  });
   document.querySelector('#createForm').addEventListener('submit', createTrip);
   document.querySelector('#openScannerButton').addEventListener('click', startScanner);
   document.querySelector('#scanFromRoleButton').addEventListener('click', startScanner);
@@ -576,8 +620,8 @@ function wireEvents() {
 async function initialize() {
   registerTourServiceWorker();
   wireEvents();
-  if (session) savePreferredRole(session.role);
-  setLocale(session ? localeForRole(session.role) : preferredRole ? localeForRole(preferredRole) : 'zh-TW');
+  if (session) savePreferredRole(session.role, session.locale);
+  setLocale(session ? localeForRole(session.role, session.locale) : preferredRole ? localeForRole(preferredRole, preferredLocale) : 'zh-TW');
   initInstallExperience({
     button: document.querySelector('#installAppButton'),
     notify,

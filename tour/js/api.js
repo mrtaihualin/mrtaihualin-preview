@@ -103,10 +103,12 @@ export const TourApi = Object.freeze({
 });
 
 export function saveSession(session) {
+  const role = session.role === 'driver' ? 'driver' : 'customer';
   const safeSession = {
     sessionId: String(session.sessionId),
     accessToken: String(session.accessToken),
-    role: session.role === 'driver' ? 'driver' : 'customer',
+    role,
+    locale: role === 'driver' ? 'th' : TOUR_CONFIG.customerLocales.includes(session.locale) ? session.locale : 'zh-TW',
     joinToken: session.joinToken ? String(session.joinToken) : null
   };
   localStorage.setItem(TOUR_CONFIG.storageKey, JSON.stringify(safeSession));
@@ -117,7 +119,10 @@ export function loadSession() {
   try {
     const stored = JSON.parse(localStorage.getItem(TOUR_CONFIG.storageKey));
     if (!stored?.sessionId || !stored?.accessToken || !['customer', 'driver'].includes(stored.role)) return null;
-    return stored;
+    return {
+      ...stored,
+      locale: stored.role === 'driver' ? 'th' : TOUR_CONFIG.customerLocales.includes(stored.locale) ? stored.locale : 'zh-TW'
+    };
   } catch {
     return null;
   }

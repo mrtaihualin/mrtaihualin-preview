@@ -8,7 +8,7 @@ registerTourServiceWorker();
 const session = loadSession();
 if (!session) window.location.replace('./');
 
-setLocale(localeForRole(session?.role));
+setLocale(localeForRole(session?.role, session?.locale));
 
 const connectionStatus = document.querySelector('#connectionStatus');
 const stateTitle = document.querySelector('#shareStateTitle');
@@ -70,11 +70,16 @@ function markerForPosition(existing, position, icon, label) {
 }
 
 function updateMarkers(nextState) {
-  if (selfPosition) selfMarker = markerForPosition(selfMarker, selfPosition, icons.self, session.role === 'driver' ? 'ฉัน' : '我');
+  if (selfPosition) selfMarker = markerForPosition(selfMarker, selfPosition, icons.self, t('map.selfMarker'));
 
   const other = nextState.locations?.find((location) => location.role !== session.role);
   if (nextState.locationShare?.status === 'active' && other) {
-    otherMarker = markerForPosition(otherMarker, other, icons.other, session.role === 'driver' ? 'ผู้โดยสาร' : '司機');
+    otherMarker = markerForPosition(
+      otherMarker,
+      other,
+      icons.other,
+      session.role === 'driver' ? t('map.customerMarker') : t('map.driverMarker')
+    );
     routeButton.href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(other.latitude)},${encodeURIComponent(other.longitude)}`;
     setVisible(routeButton, true);
   } else {

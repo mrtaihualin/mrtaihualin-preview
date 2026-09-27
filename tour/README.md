@@ -9,8 +9,8 @@ Standalone mobile-first module for temporary communication between a foreign tou
 - Staging backend: Supabase project `mrtaihualin-STAGING` (`xufxvwcelbovzsxywawg`)
 - Data access: token-gated Postgres RPC functions; underlying tables are private
 - Transport: 2.5-second polling (no P2P and no localStorage data cache)
-- Session recovery: localStorage keeps only the session id, participant role, and unguessable participant token
-- Role onboarding: the first Customer/Driver choice is remembered locally; later opens show only that role's create/join page until the user explicitly changes role
+- Session recovery: localStorage keeps only the session id, participant role, UI locale, and unguessable participant token
+- Role onboarding: the first Chinese Customer / Japanese Customer / Thai Driver choice is remembered locally; later opens show only that role and language until the user explicitly changes role
 - Session lifetime: expires after seven days without explicit foreground use or a meaningful write
 - Location consent: one request, one acceptance, exactly 20 minutes; a new request is required to extend
 
@@ -70,7 +70,7 @@ The API test creates disposable sessions, exercises both creator directions, and
 
 - No real name, phone, email, LINE ID, passport, login, or account is required.
 - QR join tokens stop working immediately after pairing.
-- A QR join always infers the opposite role from the creator; the scanner never asks the joining user to choose again.
+- A QR join always infers the opposite role from the creator. A fresh Customer is asked only whether to use Traditional Chinese or Japanese; a Driver is assigned Thai automatically.
 - Participant tokens authorize only one role in one session.
 - Message and appointment text is rendered with `textContent`; user text is never inserted as HTML.
 - Only the latest location per role exists. It is deleted when sharing stops, expires, the parties mark “met,” or the session ends.

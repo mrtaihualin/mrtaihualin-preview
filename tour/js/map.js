@@ -1,6 +1,9 @@
 import { TOUR_CONFIG } from './config.js';
 import { localeForRole, setLocale, t } from './i18n.js';
 import { TourApi, clearSession, loadSession } from './api.js';
+import { registerTourServiceWorker } from './pwa.js';
+
+registerTourServiceWorker();
 
 const session = loadSession();
 if (!session) window.location.replace('./');

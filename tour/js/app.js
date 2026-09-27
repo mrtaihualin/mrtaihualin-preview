@@ -19,6 +19,7 @@ import {
   loadSession,
   saveSession
 } from './api.js';
+import { initInstallExperience, registerTourServiceWorker } from './pwa.js';
 
 const views = [...document.querySelectorAll('.view')];
 const connectionStatus = document.querySelector('#connectionStatus');
@@ -535,8 +536,14 @@ function wireEvents() {
 }
 
 async function initialize() {
+  registerTourServiceWorker();
   wireEvents();
   setLocale(session ? localeForRole(session.role) : 'zh-TW');
+  initInstallExperience({
+    button: document.querySelector('#installAppButton'),
+    notify,
+    t
+  });
   const joinToken = new URL(window.location.href).searchParams.get('join');
 
   if (session) {

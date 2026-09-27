@@ -15,8 +15,33 @@ test('standalone module contains the required entry points', async () => {
   const files = await readdir(root);
   assert(files.includes('index.html'));
   assert(files.includes('map.html'));
+  assert(files.includes('manifest.webmanifest'));
+  assert(files.includes('sw.js'));
   assert(files.includes('js'));
   assert(files.includes('supabase'));
+});
+
+test('PWA is scoped to the standalone tour module', async () => {
+  const manifest = JSON.parse(await text('manifest.webmanifest'));
+  const index = await text('index.html');
+  const map = await text('map.html');
+  const app = await text('js/app.js');
+  const mapScript = await text('js/map.js');
+  const worker = await text('sw.js');
+
+  assert.equal(manifest.start_url, './');
+  assert.equal(manifest.scope, './');
+  assert.equal(manifest.display, 'standalone');
+  assert(manifest.icons.some((icon) => icon.sizes === '192x192'));
+  assert(manifest.icons.some((icon) => icon.sizes === '512x512' && icon.purpose.includes('maskable')));
+  assert.match(index, /rel="manifest" href="\.\/manifest\.webmanifest"/);
+  assert.match(map, /rel="manifest" href="\.\/manifest\.webmanifest"/);
+  assert.match(app, /registerTourServiceWorker/);
+  assert.match(mapScript, /registerTourServiceWorker/);
+  assert.match(worker, /url\.origin !== self\.location\.origin/);
+  assert.match(worker, /event\.request\.mode === 'navigate'/);
+  assert.match(worker, /fetch\(event\.request\)\s*\.catch\(/);
+  assert.doesNotMatch(worker, /supabase\.co|tile\.openstreetmap\.org/);
 });
 
 test('module does not import or link old prototype or language-site logic', async () => {

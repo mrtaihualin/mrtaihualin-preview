@@ -5,6 +5,7 @@ Standalone mobile-first module for temporary communication between a foreign tou
 ## Runtime
 
 - Frontend: static HTML/CSS/ES modules under `/tour/`
+- Install experience: standards-based PWA with a scoped service worker, home-screen icon, and standalone display
 - Staging backend: Supabase project `mrtaihualin-STAGING` (`xufxvwcelbovzsxywawg`)
 - Data access: token-gated Postgres RPC functions; underlying tables are private
 - Transport: 2.5-second polling (no P2P and no localStorage data cache)
@@ -22,6 +23,7 @@ No code or runtime logic is imported from the existing language-learning website
 - `js/i18n.js` — locale keys, status keys, and standard intent translations
 - `js/app.js` — pairing/chat/appointment flow
 - `js/map.js` — consent, GPS updates, stable markers, and routing
+- `js/pwa.js` / `sw.js` / `manifest.webmanifest` — installation and same-origin app-shell caching
 - `supabase/migrations/` — private schema and public token-gated RPC API
 - `tests/` — static contract checks and cross-device backend flow test
 
@@ -45,6 +47,14 @@ python3 -m http.server 8080
 ```
 
 Camera and geolocation require HTTPS outside `localhost`; use the GitHub Pages staging URL for phone tests.
+
+## Install on a phone
+
+- Android/Chrome: use the in-app install card when offered, or choose **Install app** from the browser menu.
+- iPhone/Safari: tap **Share**, then **Add to Home Screen**.
+- Installation is optional. QR invite links continue to open the same `/tour/` module in a normal browser.
+- The cached app shell can reopen without a network connection, but creating/joining a trip, chat, maps, and all live features still require internet access.
+- Invite URLs are never written to the service-worker cache; QR join tokens remain transient and stop working after pairing.
 
 ## Tests
 

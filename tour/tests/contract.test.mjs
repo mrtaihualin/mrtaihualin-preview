@@ -75,13 +75,15 @@ test('first role and customer language are remembered and QR joins infer the opp
 
   assert.match(config, /roleStorageKey: 'tour\.v1\.role'/);
   assert.match(config, /localeStorageKey: 'tour\.v1\.locale'/);
-  assert.match(config, /customerLocales: \['zh-TW', 'ja'\]/);
+  assert.match(config, /customerLocales: \['zh-TW', 'ja', 'en'\]/);
   assert.match(index, /id="changeRoleButton"/);
   assert.match(index, /id="scanFromRoleButton"/);
   assert.match(index, /data-role-choice="customer" data-locale="ja"/);
+  assert.match(index, /data-role-choice="customer" data-locale="en"/);
   assert.match(index, /id="languageView"/);
   assert.match(index, /data-customer-locale="zh-TW"/);
   assert.match(index, /data-customer-locale="ja"/);
+  assert.match(index, /data-customer-locale="en"/);
   assert.match(app, /localStorage\.setItem\(TOUR_CONFIG\.roleStorageKey, role\)/);
   assert.match(app, /localStorage\.setItem\(TOUR_CONFIG\.localeStorageKey, normalizedLocale\)/);
   assert.match(app, /localStorage\.removeItem\(TOUR_CONFIG\.roleStorageKey\)/);
@@ -110,16 +112,20 @@ test('locale and intent architecture includes all planned locales', async () => 
   const i18n = await text('js/i18n.js');
   for (const locale of ['zh-TW', 'zh-CN', 'th', 'en', 'ja']) assert.match(config, new RegExp(locale));
   for (const key of ['on_my_way', 'arrived', 'where_are_you', 'please_wait']) assert.match(i18n, new RegExp(key));
-  assert.match(config, /exposedLocales: \['zh-TW', 'th', 'ja'\]/);
+  assert.match(config, /exposedLocales: \['zh-TW', 'th', 'ja', 'en'\]/);
   assert.match(i18n, /ja: '向かっています'/);
+  assert.match(i18n, /en: 'I am on my way'/);
   assert.match(i18n, /'app\.name': '旅の仲間'/);
 });
 
-test('every exposed locale has the same UI keys and every intent has Japanese', async () => {
+test('every exposed locale has the same UI keys and every intent has Japanese and English', async () => {
   const { INTENTS, UI } = await import('../js/i18n.js');
   const referenceKeys = Object.keys(UI['zh-TW']).sort();
-  for (const locale of ['th', 'ja']) assert.deepEqual(Object.keys(UI[locale]).sort(), referenceKeys);
-  for (const translations of Object.values(INTENTS)) assert.equal(typeof translations.ja, 'string');
+  for (const locale of ['th', 'ja', 'en']) assert.deepEqual(Object.keys(UI[locale]).sort(), referenceKeys);
+  for (const translations of Object.values(INTENTS)) {
+    assert.equal(typeof translations.ja, 'string');
+    assert.equal(typeof translations.en, 'string');
+  }
 });
 
 test('migration keeps tables private and enforces required expiry', async () => {

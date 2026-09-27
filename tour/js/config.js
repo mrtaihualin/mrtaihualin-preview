@@ -11,6 +11,6 @@ export const TOUR_CONFIG = Object.freeze({
   roleStorageKey: 'tour.v1.role',
   localeStorageKey: 'tour.v1.locale',
   supportedLocales: ['zh-TW', 'zh-CN', 'th', 'en', 'ja'],
-  exposedLocales: ['zh-TW', 'th', 'ja'],
-  customerLocales: ['zh-TW', 'ja']
+  exposedLocales: ['zh-TW', 'th', 'ja', 'en'],
+  customerLocales: ['zh-TW', 'ja', 'en']
 });

@@ -27,6 +27,7 @@ test('PWA is scoped to the standalone tour module', async () => {
   const map = await text('map.html');
   const app = await text('js/app.js');
   const mapScript = await text('js/map.js');
+  const pwa = await text('js/pwa.js');
   const worker = await text('sw.js');
 
   assert.equal(manifest.start_url, './');
@@ -38,6 +39,8 @@ test('PWA is scoped to the standalone tour module', async () => {
   assert.match(map, /rel="manifest" href="\.\/manifest\.webmanifest"/);
   assert.match(app, /registerTourServiceWorker/);
   assert.match(mapScript, /registerTourServiceWorker/);
+  assert.match(pwa, /navigator\.serviceWorker\.register\('\.\/sw\.js'/);
+  assert.match(pwa, /showButton\(\)/);
   assert.match(worker, /url\.origin !== self\.location\.origin/);
   assert.match(worker, /event\.request\.mode === 'navigate'/);
   assert.match(worker, /fetch\(event\.request\)\s*\.catch\(/);

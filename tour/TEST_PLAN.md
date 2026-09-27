@@ -10,16 +10,17 @@ Use Phone A and Phone B on different networks. Use a private/incognito browser p
 4. Reopen after a refresh and verify an active session still recovers normally.
 5. Temporarily disconnect the network and verify the cached start screen reopens; verify live actions clearly fail rather than showing stale backend data.
 
-## Remembered role
+## Language and remembered role
 
-1. On a fresh browser choose Chinese Customer once and verify the Traditional Chinese Customer create page opens.
-2. Close and reopen `/tour/`; verify only that Customer create/join page appears and the other choices are not shown.
-3. Tap Change role, choose Japanese Customer, close and reopen; verify the Customer create/join page reopens in Japanese.
-4. Tap Change role, choose English Customer, close and reopen; verify the Customer create/join page reopens in English.
-5. Tap Change role, choose Driver, close and reopen; verify only the Driver create/join page appears in Thai.
-6. Create a trip as Driver and open its QR on a fresh second phone; verify the second phone is assigned Customer and asked only `繁體中文`, `日本語`, or `English`.
-7. Choose English, confirm, refresh, and verify the English trip returns without another language question.
-8. End the trip and verify each phone returns to its own remembered role-and-language page.
+1. On a fresh browser verify the first screen offers `繁體中文`, `ภาษาไทย`, `日本語`, and `English`.
+2. Choose each language in a fresh profile and verify the next role screen contains only that selected language.
+3. Choose Traveler or Driver and verify the create/join screen stays in the selected language.
+4. Close and reopen `/tour/`; verify the remembered role opens directly in the same language.
+5. Tap Change role and verify the role screen stays in the same language.
+6. Tap Change language, choose another language, and verify the role and create/join screens switch fully to it.
+7. Create a trip and open its QR on a fresh second phone; verify that phone chooses its own language and is assigned the opposite role automatically.
+8. Confirm, refresh, and verify the selected language and inferred role return without another question.
+9. End the trip and verify each phone returns to its own remembered role-and-language page.
 
 ## Customer creates
 
@@ -37,13 +38,11 @@ Use Phone A and Phone B on different networks. Use a private/incognito browser p
 
 ## Chat and voice
 
-1. Send a Chinese standard phrase from Customer and verify Driver sees Thai.
-2. Send a Thai standard phrase from Driver and verify Customer sees Traditional Chinese.
-3. Repeat with a Japanese Customer: send a Japanese standard phrase and verify Driver sees Thai; send Thai and verify Customer sees Japanese.
-4. Repeat with an English Customer: send an English standard phrase and verify Driver sees Thai; send Thai and verify Customer sees English.
-5. Send text containing `<img src=x onerror=alert(1)>`; verify it appears as text and no script runs.
-6. On Driver tap the read-aloud button and verify Thai speech.
-7. Optionally enable driving mode and verify a new translated Customer phrase is read once.
+1. Select Traditional Chinese on one phone and Thai on the other; verify standard phrases appear in each phone's selected language.
+2. Repeat with Japanese and English, verifying each phone keeps its own selected language regardless of Traveler/Driver role.
+3. Send text containing `<img src=x onerror=alert(1)>`; verify it appears as text and no script runs.
+4. On Driver tap the read-aloud button and verify Thai speech.
+5. Optionally enable driving mode and verify a new translated Customer phrase is read once.
 
 ## Appointment
 

@@ -43,9 +43,9 @@ function loadPreferredRole() {
 }
 
 function loadPreferredLocale(role) {
-  if (role === 'driver') return 'th';
   const locale = localStorage.getItem(TOUR_CONFIG.localeStorageKey);
-  if (TOUR_CONFIG.customerLocales.includes(locale)) return locale;
+  if (TOUR_CONFIG.userLocales.includes(locale)) return locale;
+  if (role === 'driver') return 'th';
   return role === 'customer' ? 'zh-TW' : null;
 }
 
@@ -59,11 +59,18 @@ function savePreferredRole(role, locale = null) {
   return { role, locale: normalizedLocale };
 }
 
-function clearPreferredRole() {
+function savePreferredLocale(locale) {
+  if (!TOUR_CONFIG.userLocales.includes(locale)) return null;
+  localStorage.setItem(TOUR_CONFIG.localeStorageKey, locale);
+  preferredLocale = locale;
+  return locale;
+}
+
+function clearPreferredRole({ clearLocale = false } = {}) {
   localStorage.removeItem(TOUR_CONFIG.roleStorageKey);
-  localStorage.removeItem(TOUR_CONFIG.localeStorageKey);
+  if (clearLocale) localStorage.removeItem(TOUR_CONFIG.localeStorageKey);
   preferredRole = null;
-  preferredLocale = null;
+  if (clearLocale) preferredLocale = null;
 }
 
 function showView(id) {
@@ -392,11 +399,11 @@ async function openJoinValue(value) {
     pendingJoin = { joinToken, preview };
     selectedRole = preview.creatorRole === 'driver' ? 'customer' : 'driver';
     setConnection('online', 'status.online');
-    if (selectedRole === 'customer' && preferredRole !== 'customer') {
-      showView('languageView');
+    if (!preferredLocale) {
+      showLanguagePicker({ preserveJoinRole: true });
       return;
     }
-    selectedLocale = localeForRole(selectedRole, preferredRole === selectedRole ? preferredLocale : null);
+    selectedLocale = localeForRole(selectedRole, preferredLocale);
     showPairingConfirmation();
   } catch (error) {
     setConnection('offline', 'status.offline');
@@ -416,12 +423,18 @@ function showPairingConfirmation() {
   showView('confirmView');
 }
 
-function chooseJoinLanguage(locale) {
-  if (!TOUR_CONFIG.customerLocales.includes(locale)) return;
-  selectedRole = 'customer';
+function chooseLanguage(locale) {
+  if (!TOUR_CONFIG.userLocales.includes(locale)) return;
   selectedLocale = locale;
-  savePreferredRole(selectedRole, selectedLocale);
-  showPairingConfirmation();
+  savePreferredLocale(locale);
+  setLocale(locale);
+  setConnection('online', 'status.ready');
+  if (pendingJoin) {
+    savePreferredRole(selectedRole, selectedLocale);
+    showPairingConfirmation();
+    return;
+  }
+  showView('roleView');
 }
 
 async function confirmPairing() {
@@ -530,7 +543,7 @@ async function shareInvite() {
 function selectRole(role, { locale = null, persist = true, focus = true } = {}) {
   if (!['customer', 'driver'].includes(role)) return;
   selectedRole = role;
-  selectedLocale = localeForRole(role, locale || (preferredRole === role ? preferredLocale : null));
+  selectedLocale = localeForRole(role, locale || preferredLocale);
   if (persist) savePreferredRole(role, selectedLocale);
   setLocale(selectedLocale);
   document.querySelector('#createEyebrow').textContent = t(`create.${role}Eyebrow`);
@@ -549,24 +562,47 @@ function showRoleHome({ focus = false } = {}) {
     selectRole(preferredRole, { locale: preferredLocale, persist: false, focus });
     return;
   }
-  selectedRole = null;
-  setLocale('zh-TW');
+  if (preferredLocale) {
+    selectedRole = null;
+    selectedLocale = preferredLocale;
+    setLocale(selectedLocale);
+    showView('roleView');
+    return;
+  }
+  showLanguagePicker();
+}
+
+function showLanguagePicker({ preserveJoinRole = false } = {}) {
+  if (!preserveJoinRole) selectedRole = null;
+  selectedLocale = null;
+  document.documentElement.lang = 'en';
+  document.title = 'Tour';
+  document.querySelector('#brandName').textContent = 'Tour';
+  connectionStatus.className = 'status-pill';
+  connectionStatus.lastElementChild.textContent = '🌐';
   showView('startView');
 }
 
 function changeRole() {
   clearPreferredRole();
   selectedRole = null;
-  setLocale('zh-TW');
-  showView('startView');
+  setLocale(preferredLocale);
+  showView('roleView');
+}
+
+function changeLanguage() {
+  clearPreferredRole({ clearLocale: true });
+  pendingJoin = null;
+  history.replaceState({}, '', new URL('./', window.location.href).pathname);
+  showLanguagePicker();
 }
 
 function wireEvents() {
-  document.querySelectorAll('[data-role-choice]').forEach((button) => {
-    button.addEventListener('click', () => selectRole(button.dataset.roleChoice, { locale: button.dataset.locale }));
+  document.querySelectorAll('[data-locale-choice]').forEach((button) => {
+    button.addEventListener('click', () => chooseLanguage(button.dataset.localeChoice));
   });
-  document.querySelectorAll('[data-customer-locale]').forEach((button) => {
-    button.addEventListener('click', () => chooseJoinLanguage(button.dataset.customerLocale));
+  document.querySelectorAll('[data-role-choice]').forEach((button) => {
+    button.addEventListener('click', () => selectRole(button.dataset.roleChoice, { locale: selectedLocale }));
   });
   document.querySelectorAll('[data-action="back"]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -575,11 +611,7 @@ function wireEvents() {
     });
   });
   document.querySelector('#changeRoleButton').addEventListener('click', changeRole);
-  document.querySelector('#languageBackButton').addEventListener('click', () => {
-    pendingJoin = null;
-    history.replaceState({}, '', new URL('./', window.location.href).pathname);
-    showRoleHome();
-  });
+  document.querySelector('#changeLanguageButton').addEventListener('click', changeLanguage);
   document.querySelector('#createForm').addEventListener('submit', createTrip);
   document.querySelector('#openScannerButton').addEventListener('click', startScanner);
   document.querySelector('#scanFromRoleButton').addEventListener('click', startScanner);
@@ -621,7 +653,8 @@ async function initialize() {
   registerTourServiceWorker();
   wireEvents();
   if (session) savePreferredRole(session.role, session.locale);
-  setLocale(session ? localeForRole(session.role, session.locale) : preferredRole ? localeForRole(preferredRole, preferredLocale) : 'zh-TW');
+  if (session) setLocale(localeForRole(session.role, session.locale));
+  else if (preferredLocale) setLocale(preferredLocale);
   initInstallExperience({
     button: document.querySelector('#installAppButton'),
     notify,
@@ -646,7 +679,7 @@ async function initialize() {
   }
 
   showRoleHome();
-  setConnection('online', 'status.ready');
+  if (preferredLocale) setConnection('online', 'status.ready');
 }
 
 initialize();

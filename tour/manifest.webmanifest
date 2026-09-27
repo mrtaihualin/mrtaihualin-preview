@@ -1,9 +1,9 @@
 {
   "id": "./",
-  "name": "旅途同行 · เพื่อนร่วมทริป",
-  "short_name": "旅途同行",
-  "description": "旅客與泰國司機的臨時旅程溝通工具",
-  "lang": "zh-Hant",
+  "name": "Tour",
+  "short_name": "Tour",
+  "description": "Tour",
+  "lang": "en",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

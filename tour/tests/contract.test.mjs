@@ -68,29 +68,35 @@ test('session recovery stores credentials only, never backend data', async () =>
   assert.doesNotMatch(api, /localStorage\.setItem[^\n]+locations/);
 });
 
-test('first role and customer language are remembered and QR joins infer the opposite role', async () => {
+test('language is chosen before role, both choices are remembered, and QR joins infer the opposite role', async () => {
   const config = await text('js/config.js');
   const index = await text('index.html');
   const app = await text('js/app.js');
+  const api = await text('js/api.js');
 
   assert.match(config, /roleStorageKey: 'tour\.v1\.role'/);
   assert.match(config, /localeStorageKey: 'tour\.v1\.locale'/);
-  assert.match(config, /customerLocales: \['zh-TW', 'ja', 'en'\]/);
+  assert.match(config, /userLocales: \['zh-TW', 'th', 'ja', 'en'\]/);
   assert.match(index, /id="changeRoleButton"/);
+  assert.match(index, /id="changeLanguageButton"/);
   assert.match(index, /id="scanFromRoleButton"/);
-  assert.match(index, /data-role-choice="customer" data-locale="ja"/);
-  assert.match(index, /data-role-choice="customer" data-locale="en"/);
-  assert.match(index, /id="languageView"/);
-  assert.match(index, /data-customer-locale="zh-TW"/);
-  assert.match(index, /data-customer-locale="ja"/);
-  assert.match(index, /data-customer-locale="en"/);
+  for (const locale of ['zh-TW', 'th', 'ja', 'en']) {
+    assert.match(index, new RegExp(`data-locale-choice="${locale}"`));
+  }
+  assert.match(index, /id="roleView"/);
+  assert.match(index, /data-role-choice="customer"/);
+  assert.match(index, /data-role-choice="driver"/);
+  assert.doesNotMatch(index, /data-customer-locale|id="languageView"/);
   assert.match(app, /localStorage\.setItem\(TOUR_CONFIG\.roleStorageKey, role\)/);
   assert.match(app, /localStorage\.setItem\(TOUR_CONFIG\.localeStorageKey, normalizedLocale\)/);
+  assert.match(app, /function chooseLanguage\(locale\)/);
+  assert.match(app, /if \(!preferredLocale\)/);
   assert.match(app, /localStorage\.removeItem\(TOUR_CONFIG\.roleStorageKey\)/);
-  assert.match(app, /localStorage\.removeItem\(TOUR_CONFIG\.localeStorageKey\)/);
+  assert.match(app, /if \(clearLocale\) localStorage\.removeItem\(TOUR_CONFIG\.localeStorageKey\)/);
   assert.match(app, /selectedRole = preview\.creatorRole === 'driver' \? 'customer' : 'driver'/);
-  assert.match(app, /selectedRole === 'customer' && preferredRole !== 'customer'/);
   assert.match(app, /showRoleHome\(\)/);
+  assert.match(api, /locale: TOUR_CONFIG\.userLocales\.includes\(session\.locale\) \? session\.locale/);
+  assert.match(api, /locale: TOUR_CONFIG\.userLocales\.includes\(stored\.locale\) \? stored\.locale/);
 });
 
 test('user content is rendered as text and not HTML', async () => {

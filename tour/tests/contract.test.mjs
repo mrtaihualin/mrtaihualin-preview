@@ -67,6 +67,20 @@ test('session recovery stores credentials only, never backend data', async () =>
   assert.doesNotMatch(api, /localStorage\.setItem[^\n]+locations/);
 });
 
+test('first role choice is remembered and QR joins infer the opposite role', async () => {
+  const config = await text('js/config.js');
+  const index = await text('index.html');
+  const app = await text('js/app.js');
+
+  assert.match(config, /roleStorageKey: 'tour\.v1\.role'/);
+  assert.match(index, /id="changeRoleButton"/);
+  assert.match(index, /id="scanFromRoleButton"/);
+  assert.match(app, /localStorage\.setItem\(TOUR_CONFIG\.roleStorageKey, role\)/);
+  assert.match(app, /localStorage\.removeItem\(TOUR_CONFIG\.roleStorageKey\)/);
+  assert.match(app, /selectedRole = preview\.creatorRole === 'driver' \? 'customer' : 'driver'/);
+  assert.match(app, /showRoleHome\(\)/);
+});
+
 test('user content is rendered as text and not HTML', async () => {
   const app = await text('js/app.js');
   assert.match(app, /bubble\.textContent = localized\.text/);

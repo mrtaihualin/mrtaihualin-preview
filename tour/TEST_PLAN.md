@@ -10,6 +10,14 @@ Use Phone A and Phone B on different networks. Use a private/incognito browser p
 4. Reopen after a refresh and verify an active session still recovers normally.
 5. Temporarily disconnect the network and verify the cached start screen reopens; verify live actions clearly fail rather than showing stale backend data.
 
+## Remembered role
+
+1. On a fresh browser choose Customer once and verify the Customer create page opens.
+2. Close and reopen `/tour/`; verify only the Customer create/join page appears and the Driver card is not shown.
+3. Tap Change role, choose Driver, close and reopen; verify only the Driver create/join page appears in Thai.
+4. Create a trip as Driver and scan its QR on a fresh second phone; verify the second phone is assigned Customer automatically without a role question.
+5. End the trip and verify each phone returns to its own remembered role page.
+
 ## Customer creates
 
 1. On Phone A choose Customer, enter a display name, and create the trip.

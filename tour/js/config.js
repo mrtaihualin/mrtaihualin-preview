@@ -8,6 +8,7 @@ export const TOUR_CONFIG = Object.freeze({
   sessionInactivityDays: 7,
   locationShareMinutes: 20,
   storageKey: 'tour.v1.session',
+  roleStorageKey: 'tour.v1.role',
   supportedLocales: ['zh-TW', 'zh-CN', 'th', 'en', 'ja'],
   exposedLocales: ['zh-TW', 'th']
 });

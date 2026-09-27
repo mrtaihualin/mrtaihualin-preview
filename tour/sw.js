@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tour-shell-v1';
+const CACHE_NAME = 'tour-shell-v2';
 const APP_SHELL = [
   './',
   './index.html',
@@ -38,7 +38,7 @@ self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
-        .catch(() => caches.match(url.pathname.endsWith('/map.html') ? './map.html' : './index.html')))
+        .catch(() => caches.match(url.pathname.endsWith('/map.html') ? './map.html' : './index.html'))
     );
     return;
   }

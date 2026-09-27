@@ -192,6 +192,25 @@ a { color: inherit; text-decoration: none; }
   font-weight: 900;
 }
 
+.role-note {
+  margin: 12px 4px 0;
+  color: var(--muted);
+  font-size: .78rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.role-scan-action {
+  margin-top: 18px;
+  padding-top: 17px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: .78rem;
+  text-align: center;
+}
+
+.role-scan-action .secondary { margin-top: 9px; }
+
 .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 15px 0 12px; }
 
 .role-card {

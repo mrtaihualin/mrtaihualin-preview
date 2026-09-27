@@ -44,6 +44,8 @@
         <span aria-hidden="true">›</span>
       </button>
 
+      <p class="role-note">首次選擇後會記住此頁・เลือกครั้งแรก ระบบจะจำหน้านี้ไว้</p>
+
       <div class="role-grid" aria-label="Choose role">
         <button class="role-card" type="button" data-role-choice="customer">
           <span class="role-icon" aria-hidden="true">🧳</span>
@@ -61,7 +63,7 @@
     </section>
 
     <section class="view hidden" id="createView">
-      <button class="back-link" type="button" data-action="back">← <span data-i18n="common.back">返回</span></button>
+      <button class="back-link" id="changeRoleButton" type="button">⇄ <span data-i18n="role.change">切換身分</span></button>
       <div class="panel">
         <p class="eyebrow" id="createEyebrow"></p>
         <h1 id="createTitle"></h1>
@@ -71,6 +73,10 @@
           <p class="field-hint" id="tripLabelHint"></p>
           <button class="primary full" id="createButton" type="submit"></button>
         </form>
+        <div class="role-scan-action">
+          <span data-i18n="role.orJoin">或加入對方建立的旅程</span>
+          <button class="secondary full" id="scanFromRoleButton" type="button" data-i18n="start.scan">掃描對方的 QR Code</button>
+        </div>
       </div>
     </section>
 

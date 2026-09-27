@@ -26,13 +26,31 @@ const connectionStatus = document.querySelector('#connectionStatus');
 const toast = document.querySelector('#toast');
 
 let session = loadSession();
-let selectedRole = null;
+let preferredRole = loadPreferredRole();
+let selectedRole = session?.role || preferredRole;
 let pendingJoin = null;
 let currentState = null;
 let pollTimer = null;
 let qrScanner = null;
 let lastSeenMessageId = null;
 let initialMessagesRendered = false;
+
+function loadPreferredRole() {
+  const role = localStorage.getItem(TOUR_CONFIG.roleStorageKey);
+  return ['customer', 'driver'].includes(role) ? role : null;
+}
+
+function savePreferredRole(role) {
+  if (!['customer', 'driver'].includes(role)) return null;
+  localStorage.setItem(TOUR_CONFIG.roleStorageKey, role);
+  preferredRole = role;
+  return role;
+}
+
+function clearPreferredRole() {
+  localStorage.removeItem(TOUR_CONFIG.roleStorageKey);
+  preferredRole = null;
+}
 
 function showView(id) {
   views.forEach((view) => view.classList.toggle('hidden', view.id !== id));
@@ -88,7 +106,7 @@ async function pollState({ touch = false, quiet = false } = {}) {
       clearSession();
       session = null;
       stopPolling();
-      showView('startView');
+      showRoleHome();
       notify(humanError(error));
     } else if (!quiet) {
       notify(humanError(error));
@@ -288,7 +306,7 @@ function handleEndedSession() {
   session = null;
   stopPolling();
   setConnection('warning', 'status.ended');
-  showView('startView');
+  showRoleHome();
   notify(t('trip.ended'));
 }
 
@@ -384,6 +402,7 @@ async function confirmPairing() {
       role: selectedRole,
       joinToken: null
     });
+    savePreferredRole(selectedRole);
     history.replaceState({}, '', new URL('./', window.location.href).pathname);
     pendingJoin = null;
     notify(t('pairing.paired'));
@@ -473,8 +492,10 @@ async function shareInvite() {
   }
 }
 
-function selectRole(role) {
+function selectRole(role, { persist = true, focus = true } = {}) {
+  if (!['customer', 'driver'].includes(role)) return;
   selectedRole = role;
+  if (persist) savePreferredRole(role);
   setLocale(localeForRole(role));
   document.querySelector('#createEyebrow').textContent = t(`create.${role}Eyebrow`);
   document.querySelector('#createTitle').textContent = t(`create.${role}Title`);
@@ -484,7 +505,24 @@ function selectRole(role) {
   document.querySelector('#tripLabel').maxLength = role === 'driver' ? 24 : 80;
   document.querySelector('#tripLabel').value = '';
   showView('createView');
-  document.querySelector('#tripLabel').focus();
+  if (focus) document.querySelector('#tripLabel').focus();
+}
+
+function showRoleHome({ focus = false } = {}) {
+  if (preferredRole) {
+    selectRole(preferredRole, { persist: false, focus });
+    return;
+  }
+  selectedRole = null;
+  setLocale('zh-TW');
+  showView('startView');
+}
+
+function changeRole() {
+  clearPreferredRole();
+  selectedRole = null;
+  setLocale('zh-TW');
+  showView('startView');
 }
 
 function wireEvents() {
@@ -494,12 +532,13 @@ function wireEvents() {
   document.querySelectorAll('[data-action="back"]').forEach((button) => {
     button.addEventListener('click', () => {
       qrScanner?.stop();
-      setLocale('zh-TW');
-      showView('startView');
+      showRoleHome();
     });
   });
+  document.querySelector('#changeRoleButton').addEventListener('click', changeRole);
   document.querySelector('#createForm').addEventListener('submit', createTrip);
   document.querySelector('#openScannerButton').addEventListener('click', startScanner);
+  document.querySelector('#scanFromRoleButton').addEventListener('click', startScanner);
   document.querySelector('#manualJoinForm').addEventListener('submit', (event) => {
     event.preventDefault();
     openJoinValue(document.querySelector('#manualJoinInput').value);
@@ -508,8 +547,7 @@ function wireEvents() {
   document.querySelector('#rejectPairButton').addEventListener('click', () => {
     pendingJoin = null;
     history.replaceState({}, '', new URL('./', window.location.href).pathname);
-    setLocale('zh-TW');
-    showView('startView');
+    showRoleHome();
   });
   document.querySelector('#shareLinkButton').addEventListener('click', shareInvite);
   document.querySelector('#copyInviteButton').addEventListener('click', shareInvite);
@@ -538,7 +576,8 @@ function wireEvents() {
 async function initialize() {
   registerTourServiceWorker();
   wireEvents();
-  setLocale(session ? localeForRole(session.role) : 'zh-TW');
+  if (session) savePreferredRole(session.role);
+  setLocale(session ? localeForRole(session.role) : preferredRole ? localeForRole(preferredRole) : 'zh-TW');
   initInstallExperience({
     button: document.querySelector('#installAppButton'),
     notify,
@@ -562,7 +601,7 @@ async function initialize() {
     return;
   }
 
-  showView('startView');
+  showRoleHome();
   setConnection('online', 'status.ready');
 }
 

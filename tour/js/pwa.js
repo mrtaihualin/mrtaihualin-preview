@@ -12,9 +12,7 @@ function isAppleMobile() {
 export function registerTourServiceWorker() {
   if (serviceWorkerRegistrationStarted || !('serviceWorker' in navigator)) return;
   serviceWorkerRegistrationStarted = true;
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
-  }, { once: true });
+  navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
 }
 
 export function initInstallExperience({ button, notify, t }) {
@@ -23,7 +21,7 @@ export function initInstallExperience({ button, notify, t }) {
   const showButton = () => button.classList.remove('hidden');
   const hideButton = () => button.classList.add('hidden');
 
-  if (isAppleMobile()) showButton();
+  showButton();
 
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();

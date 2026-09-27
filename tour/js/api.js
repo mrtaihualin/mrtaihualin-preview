@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=6';
+import { TOUR_CONFIG } from './config.js?v=7';
 
 export class TourApiError extends Error {
   constructor(message, code = 'TOUR_API_ERROR', status = 0) {
@@ -40,8 +40,8 @@ export const TourApi = Object.freeze({
   previewSession(joinToken) {
     return rpc('preview_session', { p_join_token: joinToken });
   },
-  confirmSession(joinToken, role) {
-    return rpc('confirm_session', { p_join_token: joinToken, p_role: role });
+  confirmSession(joinToken, role, label) {
+    return rpc('confirm_session', { p_join_token: joinToken, p_role: role, p_label: label });
   },
   getState(sessionId, accessToken, touch = false) {
     return rpc('get_state', {

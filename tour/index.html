@@ -13,7 +13,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./assets/styles.css?v=6">
+  <link rel="stylesheet" href="./assets/styles.css?v=7">
 </head>
 <body>
   <header class="topbar">
@@ -131,7 +131,12 @@
         <div class="confirm-icon" aria-hidden="true">✓</div>
         <h1 id="confirmLabel"></h1>
         <p id="confirmRoleCopy"></p>
-        <button class="primary full" id="confirmPairButton" type="button" data-i18n="pairing.confirm">確認並加入</button>
+        <form id="confirmForm" class="confirm-form">
+          <label for="confirmOwnLabel" id="confirmOwnLabelText"></label>
+          <input id="confirmOwnLabel" type="text" autocomplete="off" required>
+          <p class="field-hint" id="confirmOwnLabelHint"></p>
+          <button class="primary full" id="confirmPairButton" type="submit" data-i18n="pairing.confirm">確認並加入</button>
+        </form>
         <button class="text-button" id="rejectPairButton" type="button" data-i18n="pairing.notMine">這不是我的旅程</button>
       </div>
     </section>
@@ -140,9 +145,20 @@
       <div class="trip-heading">
         <div>
           <p class="eyebrow" id="tripRoleEyebrow"></p>
-          <h1 id="activeTripLabel"></h1>
+          <h1 data-i18n="trip.current">目前旅程</h1>
         </div>
         <button class="icon-button" id="tripMenuButton" type="button" aria-label="Trip menu" data-i18n-aria-label="trip.menu">•••</button>
+      </div>
+
+      <div class="trip-identity-grid">
+        <div class="identity-item">
+          <span data-i18n="trip.customerName">旅客名稱</span>
+          <strong id="tripCustomerName"></strong>
+        </div>
+        <div class="identity-item">
+          <span data-i18n="trip.vehiclePlate">車牌</span>
+          <strong id="tripVehiclePlate"></strong>
+        </div>
       </div>
 
       <div class="trip-actions" id="tripMenu" hidden>
@@ -221,6 +237,6 @@
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   </main>
 
-  <script type="module" src="./js/app.js?v=6"></script>
+  <script type="module" src="./js/app.js?v=7"></script>
 </body>
 </html>

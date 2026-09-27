@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=6';
+import { TOUR_CONFIG } from './config.js?v=7';
 import {
   INTENTS,
   detectIntent,
@@ -9,7 +9,7 @@ import {
   setLocale,
   t,
   translateIntent
-} from './i18n.js?v=6';
+} from './i18n.js?v=7';
 import {
   TourApi,
   TourApiError,
@@ -18,8 +18,8 @@ import {
   inviteUrl,
   loadSession,
   saveSession
-} from './api.js?v=6';
-import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=6';
+} from './api.js?v=7';
+import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=7';
 
 const views = [...document.querySelectorAll('.view')];
 const connectionStatus = document.querySelector('#connectionStatus');
@@ -281,8 +281,8 @@ function renderLocation(state) {
 
 function renderTrip(state) {
   if (document.querySelector('#tripView').classList.contains('hidden')) showView('tripView');
-  const label = state.session.tripDisplayName || state.session.vehiclePlate;
-  document.querySelector('#activeTripLabel').textContent = label;
+  document.querySelector('#tripCustomerName').textContent = state.session.tripDisplayName || '—';
+  document.querySelector('#tripVehiclePlate').textContent = state.session.vehiclePlate || '—';
   document.querySelector('#tripRoleEyebrow').textContent = session.role === 'driver' ? t('trip.driverRole') : t('trip.customerRole');
   document.querySelector('#drivingModeWrap').classList.toggle('hidden', session.role !== 'driver');
   document.querySelector('#copyInviteButton').classList.toggle('hidden', !session.joinToken);
@@ -420,6 +420,11 @@ function showPairingConfirmation() {
     preview.creatorRole,
     preview.vehiclePlate || preview.tripDisplayName
   );
+  const ownLabel = document.querySelector('#confirmOwnLabel');
+  ownLabel.value = '';
+  ownLabel.maxLength = selectedRole === 'driver' ? 24 : 80;
+  document.querySelector('#confirmOwnLabelText').textContent = t(`pairing.${selectedRole}OwnLabel`);
+  document.querySelector('#confirmOwnLabelHint').textContent = t(`pairing.${selectedRole}OwnHint`);
   showView('confirmView');
 }
 
@@ -437,12 +442,15 @@ function chooseLanguage(locale) {
   showView('roleView');
 }
 
-async function confirmPairing() {
+async function confirmPairing(event) {
+  event.preventDefault();
   if (!pendingJoin) return;
   const button = document.querySelector('#confirmPairButton');
+  const label = document.querySelector('#confirmOwnLabel').value.trim();
+  if (!label) return;
   setBusy(button, true);
   try {
-    const confirmed = await TourApi.confirmSession(pendingJoin.joinToken, selectedRole);
+    const confirmed = await TourApi.confirmSession(pendingJoin.joinToken, selectedRole, label);
     session = saveSession({
       sessionId: confirmed.sessionId,
       accessToken: confirmed.accessToken,
@@ -619,7 +627,7 @@ function wireEvents() {
     event.preventDefault();
     openJoinValue(document.querySelector('#manualJoinInput').value);
   });
-  document.querySelector('#confirmPairButton').addEventListener('click', confirmPairing);
+  document.querySelector('#confirmForm').addEventListener('submit', confirmPairing);
   document.querySelector('#rejectPairButton').addEventListener('click', () => {
     pendingJoin = null;
     history.replaceState({}, '', new URL('./', window.location.href).pathname);

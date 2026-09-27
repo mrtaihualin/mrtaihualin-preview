@@ -25,11 +25,30 @@ async function rpcMustFail(name, body, expectedMessage) {
 
 async function createAndPair(creatorRole, label) {
   const otherRole = creatorRole === 'driver' ? 'customer' : 'driver';
+  const otherLabel = otherRole === 'driver'
+    ? `JOIN-${String(Date.now()).slice(-6)}`
+    : `E2E Joining Customer ${Date.now()}`;
   const created = await rpc('create_session', { p_creator_role: creatorRole, p_label: label });
   const preview = await rpc('preview_session', { p_join_token: created.joinToken });
   assert.equal(preview.creatorRole, creatorRole);
-  const joined = await rpc('confirm_session', { p_join_token: created.joinToken, p_role: otherRole });
+  await rpcMustFail('confirm_session', {
+    p_join_token: created.joinToken,
+    p_role: otherRole,
+    p_label: ' '
+  }, 'TOUR_LABEL_REQUIRED');
+  const joined = await rpc('confirm_session', {
+    p_join_token: created.joinToken,
+    p_role: otherRole,
+    p_label: otherLabel
+  });
   await rpcMustFail('preview_session', { p_join_token: created.joinToken }, 'TOUR_JOIN_INVALID');
+  const state = await rpc('get_state', {
+    p_session_id: created.sessionId,
+    p_access_token: created.accessToken,
+    p_touch: false
+  });
+  assert.equal(state.session.tripDisplayName, creatorRole === 'customer' ? label : otherLabel);
+  assert.equal(state.session.vehiclePlate, creatorRole === 'driver' ? label : otherLabel);
   return {
     sessionId: created.sessionId,
     [creatorRole]: created.accessToken,

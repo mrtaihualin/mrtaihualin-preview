@@ -37,10 +37,10 @@ test('PWA is scoped to the standalone tour module', async () => {
   assert(manifest.icons.some((icon) => icon.sizes === '512x512' && icon.purpose.includes('maskable')));
   assert.match(index, /rel="manifest" href="\.\/manifest\.webmanifest"/);
   assert.match(map, /rel="manifest" href="\.\/manifest\.webmanifest"/);
-  assert.match(index, /src="\.\/js\/app\.js\?v=6"/);
-  assert.match(map, /src="\.\/js\/map\.js\?v=6"/);
-  assert.match(app, /from '\.\/config\.js\?v=6'/);
-  assert.match(mapScript, /from '\.\/config\.js\?v=6'/);
+  assert.match(index, /src="\.\/js\/app\.js\?v=7"/);
+  assert.match(map, /src="\.\/js\/map\.js\?v=7"/);
+  assert.match(app, /from '\.\/config\.js\?v=7'/);
+  assert.match(mapScript, /from '\.\/config\.js\?v=7'/);
   assert.match(app, /registerTourServiceWorker/);
   assert.match(mapScript, /registerTourServiceWorker/);
   assert.match(pwa, /navigator\.serviceWorker\.register\('\.\/sw\.js'/);
@@ -91,6 +91,9 @@ test('language is chosen before role, both choices are remembered, and QR joins 
   assert.match(index, /id="roleView"/);
   assert.match(index, /data-role-choice="customer"/);
   assert.match(index, /data-role-choice="driver"/);
+  assert.match(index, /id="confirmOwnLabel"/);
+  assert.match(index, /id="tripCustomerName"/);
+  assert.match(index, /id="tripVehiclePlate"/);
   assert.doesNotMatch(index, /data-customer-locale|id="languageView"/);
   assert.match(app, /localStorage\.setItem\(TOUR_CONFIG\.roleStorageKey, role\)/);
   assert.match(app, /localStorage\.setItem\(TOUR_CONFIG\.localeStorageKey, normalizedLocale\)/);
@@ -99,6 +102,8 @@ test('language is chosen before role, both choices are remembered, and QR joins 
   assert.match(app, /localStorage\.removeItem\(TOUR_CONFIG\.roleStorageKey\)/);
   assert.match(app, /if \(clearLocale\) localStorage\.removeItem\(TOUR_CONFIG\.localeStorageKey\)/);
   assert.match(app, /selectedRole = preview\.creatorRole === 'driver' \? 'customer' : 'driver'/);
+  assert.match(app, /TourApi\.confirmSession\(pendingJoin\.joinToken, selectedRole, label\)/);
+  assert.match(api, /p_label: label/);
   assert.match(app, /showRoleHome\(\)/);
   assert.match(api, /locale: TOUR_CONFIG\.userLocales\.includes\(session\.locale\) \? session\.locale/);
   assert.match(api, /locale: TOUR_CONFIG\.userLocales\.includes\(stored\.locale\) \? stored\.locale/);
@@ -141,7 +146,7 @@ test('every exposed locale has the same UI keys and every intent has Japanese an
 
 test('migration keeps tables private and enforces required expiry', async () => {
   const migrationDir = path.join(root, 'supabase', 'migrations');
-  const [migrationName] = await readdir(migrationDir);
+  const migrationName = (await readdir(migrationDir)).find((name) => name.includes('tour_mvp_v1'));
   const sql = await readFile(path.join(migrationDir, migrationName), 'utf8');
   assert.match(sql, /create schema if not exists tour_private/);
   assert.match(sql, /enable row level security/g);
@@ -151,4 +156,15 @@ test('migration keeps tables private and enforces required expiry', async () => 
   assert.match(sql, /interval '20 minutes'/);
   assert.match(sql, /delete from tour_private\.locations/);
   assert.match(sql, /grant execute on function public\.tour_v1_/);
+});
+
+test('pairing migration requires the scanner to add the missing customer name or vehicle plate', async () => {
+  const migrationDir = path.join(root, 'supabase', 'migrations');
+  const migrationName = (await readdir(migrationDir)).find((name) => name.includes('complete_participant_labels'));
+  const sql = await readFile(path.join(migrationDir, migrationName), 'utf8');
+  assert.match(sql, /drop constraint tour_v1_label_matches_creator/);
+  assert.match(sql, /create function public\.tour_v1_confirm_session\([\s\S]+p_label text/);
+  assert.match(sql, /trip_display_name = case when p_role = 'customer'/);
+  assert.match(sql, /vehicle_plate = case when p_role = 'driver'/);
+  assert.match(sql, /grant execute on function public\.tour_v1_confirm_session\(text, text, text\)/);
 });

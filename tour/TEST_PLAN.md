@@ -21,6 +21,7 @@ Use Phone A and Phone B on different networks. Use a private/incognito browser p
 7. Create a trip and open its QR on a fresh second phone; verify that phone chooses its own language and is assigned the opposite role automatically.
 8. Confirm, refresh, and verify the selected language and inferred role return without another question.
 9. End the trip and verify each phone returns to its own remembered role-and-language page.
+10. On the scanning phone, first leave an old pending or expired trip in the browser, then scan a new QR; verify the new trip confirmation opens instead of the create-trip screen.
 
 ## Customer creates
 

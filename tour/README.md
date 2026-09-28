@@ -80,6 +80,8 @@ The API test creates disposable sessions, exercises both creator directions, and
 
 - No real name, phone, email, LINE ID, passport, login, or account is required.
 - QR join tokens stop working immediately after pairing.
+- Opening a scanned invite takes priority over a remembered or stale browser session; the prior session is kept until the user confirms the new pairing.
+- Invite URLs carry the join token in both the query string and fragment so mobile browser/PWA handoffs have a fallback without changing backend authorization.
 - A QR join always infers the opposite role from the creator. A fresh device chooses its language before confirming; it does not need to choose the inferred role again.
 - A customer display name may be a nickname or group name; a real personal name is not required.
 - Participant tokens authorize only one role in one session.

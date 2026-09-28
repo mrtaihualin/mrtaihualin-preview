@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=10';
+import { TOUR_CONFIG } from './config.js?v=13';
 import {
   INTENTS,
   detectIntent,
@@ -9,7 +9,7 @@ import {
   setLocale,
   t,
   translateIntent
-} from './i18n.js?v=10';
+} from './i18n.js?v=13';
 import {
   TourApi,
   TourApiError,
@@ -18,8 +18,8 @@ import {
   inviteUrl,
   loadSession,
   saveSession
-} from './api.js?v=10';
-import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=10';
+} from './api.js?v=13';
+import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=13';
 
 const views = [...document.querySelectorAll('.view')];
 const connectionStatus = document.querySelector('#connectionStatus');
@@ -410,7 +410,7 @@ async function openJoinValue(value) {
   const joinToken = extractJoinToken(value);
   if (!joinToken) {
     notify(t('common.error'));
-    return;
+    return false;
   }
   qrScanner?.stop();
   try {
@@ -421,13 +421,15 @@ async function openJoinValue(value) {
     setConnection('online', 'status.online');
     if (!preferredLocale) {
       showLanguagePicker({ preserveJoinRole: true });
-      return;
+      return true;
     }
     selectedLocale = localeForRole(selectedRole, preferredLocale);
     showPairingConfirmation();
+    return true;
   } catch (error) {
     setConnection('offline', 'status.offline');
     notify(humanError(error));
+    return false;
   }
 }
 
@@ -659,9 +661,15 @@ function wireEvents() {
     openJoinValue(document.querySelector('#manualJoinInput').value);
   });
   document.querySelector('#confirmForm').addEventListener('submit', confirmPairing);
-  document.querySelector('#rejectPairButton').addEventListener('click', () => {
+  document.querySelector('#rejectPairButton').addEventListener('click', async () => {
     pendingJoin = null;
     history.replaceState({}, '', new URL('./', window.location.href).pathname);
+    if (session) {
+      savePreferredRole(session.role, session.locale);
+      setLocale(localeForRole(session.role, session.locale));
+      await pollState({ touch: true });
+      return;
+    }
     showRoleHome();
   });
   document.querySelector('#shareLinkButton').addEventListener('click', shareInvite);
@@ -699,7 +707,15 @@ async function initialize() {
     notify,
     t
   });
-  const joinToken = new URL(window.location.href).searchParams.get('join');
+  const joinToken = extractJoinToken(window.location.href);
+
+  // Scanning an invite is an explicit action. Handle it before restoring any
+  // remembered or stale session, but keep that session until pairing confirms.
+  if (joinToken) {
+    const opened = await openJoinValue(joinToken);
+    if (opened) return;
+    history.replaceState({}, '', new URL('./', window.location.href).pathname);
+  }
 
   if (session) {
     setConnection('warning', 'status.connecting');
@@ -709,11 +725,6 @@ async function initialize() {
       await renderQr(inviteUrl(session.joinToken));
       showView('qrView');
     }
-    return;
-  }
-
-  if (joinToken) {
-    await openJoinValue(joinToken);
     return;
   }
 

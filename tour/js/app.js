@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=7';
+import { TOUR_CONFIG } from './config.js?v=8';
 import {
   INTENTS,
   detectIntent,
@@ -9,7 +9,7 @@ import {
   setLocale,
   t,
   translateIntent
-} from './i18n.js?v=7';
+} from './i18n.js?v=8';
 import {
   TourApi,
   TourApiError,
@@ -18,8 +18,8 @@ import {
   inviteUrl,
   loadSession,
   saveSession
-} from './api.js?v=7';
-import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=7';
+} from './api.js?v=8';
+import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=8';
 
 const views = [...document.querySelectorAll('.view')];
 const connectionStatus = document.querySelector('#connectionStatus');
@@ -36,6 +36,14 @@ let pollTimer = null;
 let qrScanner = null;
 let lastSeenMessageId = null;
 let initialMessagesRendered = false;
+let languageReturnView = null;
+
+const LOCALE_LABELS = Object.freeze({
+  'zh-TW': '🇹🇼 繁體中文',
+  th: '🇹🇭 ภาษาไทย',
+  ja: '🇯🇵 日本語',
+  en: '🇬🇧 English'
+});
 
 function loadPreferredRole() {
   const role = localStorage.getItem(TOUR_CONFIG.roleStorageKey);
@@ -71,6 +79,18 @@ function clearPreferredRole({ clearLocale = false } = {}) {
   if (clearLocale) localStorage.removeItem(TOUR_CONFIG.localeStorageKey);
   preferredRole = null;
   if (clearLocale) preferredLocale = null;
+}
+
+function updatePretripPreferences() {
+  const languageLabel = `${LOCALE_LABELS[selectedLocale] || '🌐'} ▾`;
+  document.querySelectorAll('[data-current-language]').forEach((button) => {
+    button.textContent = languageLabel;
+  });
+  const roleButton = document.querySelector('[data-current-role]');
+  if (roleButton && selectedRole) {
+    const icon = selectedRole === 'driver' ? '🚐' : '🧳';
+    roleButton.textContent = `${icon} ${t(`role.${selectedRole}Title`)} ▾`;
+  }
 }
 
 function showView(id) {
@@ -439,6 +459,14 @@ function chooseLanguage(locale) {
     showPairingConfirmation();
     return;
   }
+  if (languageReturnView === 'create' && selectedRole) {
+    languageReturnView = null;
+    savePreferredRole(selectedRole, selectedLocale);
+    selectRole(selectedRole, { locale: selectedLocale, persist: false, focus: false });
+    return;
+  }
+  languageReturnView = null;
+  updatePretripPreferences();
   showView('roleView');
 }
 
@@ -554,6 +582,7 @@ function selectRole(role, { locale = null, persist = true, focus = true } = {}) 
   selectedLocale = localeForRole(role, locale || preferredLocale);
   if (persist) savePreferredRole(role, selectedLocale);
   setLocale(selectedLocale);
+  updatePretripPreferences();
   document.querySelector('#createEyebrow').textContent = t(`create.${role}Eyebrow`);
   document.querySelector('#createTitle').textContent = t(`create.${role}Title`);
   document.querySelector('#tripLabelText').textContent = t(`create.${role}Label`);
@@ -574,6 +603,7 @@ function showRoleHome({ focus = false } = {}) {
     selectedRole = null;
     selectedLocale = preferredLocale;
     setLocale(selectedLocale);
+    updatePretripPreferences();
     showView('roleView');
     return;
   }
@@ -598,11 +628,11 @@ function changeRole() {
   showView('roleView');
 }
 
-function changeLanguage() {
-  clearPreferredRole({ clearLocale: true });
-  pendingJoin = null;
-  history.replaceState({}, '', new URL('./', window.location.href).pathname);
-  showLanguagePicker();
+function changeLanguage(returnView = 'role') {
+  languageReturnView = returnView;
+  localStorage.removeItem(TOUR_CONFIG.localeStorageKey);
+  preferredLocale = null;
+  showLanguagePicker({ preserveJoinRole: returnView === 'create' });
 }
 
 function wireEvents() {
@@ -619,7 +649,8 @@ function wireEvents() {
     });
   });
   document.querySelector('#changeRoleButton').addEventListener('click', changeRole);
-  document.querySelector('#changeLanguageButton').addEventListener('click', changeLanguage);
+  document.querySelector('#changeLanguageButton').addEventListener('click', () => changeLanguage('role'));
+  document.querySelector('#changeLanguageFromCreateButton').addEventListener('click', () => changeLanguage('create'));
   document.querySelector('#createForm').addEventListener('submit', createTrip);
   document.querySelector('#openScannerButton').addEventListener('click', startScanner);
   document.querySelector('#scanFromRoleButton').addEventListener('click', startScanner);

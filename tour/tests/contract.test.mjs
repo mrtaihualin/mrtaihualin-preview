@@ -37,10 +37,10 @@ test('PWA is scoped to the standalone tour module', async () => {
   assert(manifest.icons.some((icon) => icon.sizes === '512x512' && icon.purpose.includes('maskable')));
   assert.match(index, /rel="manifest" href="\.\/manifest\.webmanifest"/);
   assert.match(map, /rel="manifest" href="\.\/manifest\.webmanifest"/);
-  assert.match(index, /src="\.\/js\/app\.js\?v=7"/);
-  assert.match(map, /src="\.\/js\/map\.js\?v=7"/);
-  assert.match(app, /from '\.\/config\.js\?v=7'/);
-  assert.match(mapScript, /from '\.\/config\.js\?v=7'/);
+  assert.match(index, /src="\.\/js\/app\.js\?v=8"/);
+  assert.match(map, /src="\.\/js\/map\.js\?v=8"/);
+  assert.match(app, /from '\.\/config\.js\?v=8'/);
+  assert.match(mapScript, /from '\.\/config\.js\?v=8'/);
   assert.match(app, /registerTourServiceWorker/);
   assert.match(mapScript, /registerTourServiceWorker/);
   assert.match(pwa, /navigator\.serviceWorker\.register\('\.\/sw\.js'/);
@@ -84,6 +84,7 @@ test('language is chosen before role, both choices are remembered, and QR joins 
   assert.match(config, /userLocales: \['zh-TW', 'th', 'ja', 'en'\]/);
   assert.match(index, /id="changeRoleButton"/);
   assert.match(index, /id="changeLanguageButton"/);
+  assert.match(index, /id="changeLanguageFromCreateButton"/);
   assert.match(index, /id="scanFromRoleButton"/);
   for (const locale of ['zh-TW', 'th', 'ja', 'en']) {
     assert.match(index, new RegExp(`data-locale-choice="${locale}"`));
@@ -98,6 +99,8 @@ test('language is chosen before role, both choices are remembered, and QR joins 
   assert.match(app, /localStorage\.setItem\(TOUR_CONFIG\.roleStorageKey, role\)/);
   assert.match(app, /localStorage\.setItem\(TOUR_CONFIG\.localeStorageKey, normalizedLocale\)/);
   assert.match(app, /function chooseLanguage\(locale\)/);
+  assert.match(app, /languageReturnView === 'create'/);
+  assert.match(app, /showLanguagePicker\(\{ preserveJoinRole: returnView === 'create' \}\)/);
   assert.match(app, /if \(!preferredLocale\)/);
   assert.match(app, /localStorage\.removeItem\(TOUR_CONFIG\.roleStorageKey\)/);
   assert.match(app, /if \(clearLocale\) localStorage\.removeItem\(TOUR_CONFIG\.localeStorageKey\)/);

@@ -37,10 +37,10 @@ test('PWA is scoped to the standalone tour module', async () => {
   assert(manifest.icons.some((icon) => icon.sizes === '512x512' && icon.purpose.includes('maskable')));
   assert.match(index, /rel="manifest" href="\.\/manifest\.webmanifest"/);
   assert.match(map, /rel="manifest" href="\.\/manifest\.webmanifest"/);
-  assert.match(index, /src="\.\/js\/app\.js\?v=10"/);
-  assert.match(map, /src="\.\/js\/map\.js\?v=10"/);
-  assert.match(app, /from '\.\/config\.js\?v=10'/);
-  assert.match(mapScript, /from '\.\/config\.js\?v=10'/);
+  assert.match(index, /src="\.\/js\/app\.js\?v=13"/);
+  assert.match(map, /src="\.\/js\/map\.js\?v=13"/);
+  assert.match(app, /from '\.\/config\.js\?v=13'/);
+  assert.match(mapScript, /from '\.\/config\.js\?v=13'/);
   assert.match(app, /registerTourServiceWorker/);
   assert.match(mapScript, /registerTourServiceWorker/);
   assert.match(pwa, /navigator\.serviceWorker\.register\('\.\/sw\.js'/);
@@ -110,6 +110,19 @@ test('language is chosen before role, both choices are remembered, and QR joins 
   assert.match(app, /showRoleHome\(\)/);
   assert.match(api, /locale: TOUR_CONFIG\.userLocales\.includes\(session\.locale\) \? session\.locale/);
   assert.match(api, /locale: TOUR_CONFIG\.userLocales\.includes\(stored\.locale\) \? stored\.locale/);
+});
+
+test('scanned invites win over remembered sessions and survive URL handoff variants', async () => {
+  const app = await text('js/app.js');
+  const api = await text('js/api.js');
+  const initialize = app.slice(app.indexOf('async function initialize()'));
+
+  assert.match(initialize, /const joinToken = extractJoinToken\(window\.location\.href\)/);
+  assert(initialize.indexOf('if (joinToken)') < initialize.indexOf("if (session) {\n    setConnection('warning', 'status.connecting')"));
+  assert.match(initialize, /const opened = await openJoinValue\(joinToken\)/);
+  assert.match(api, /url\.searchParams\.get\('join'\)/);
+  assert.match(api, /new URLSearchParams\(url\.hash\.replace/);
+  assert.match(api, /url\.hash = new URLSearchParams\(\{ join: joinToken \}\)\.toString\(\)/);
 });
 
 test('user content is rendered as text and not HTML', async () => {

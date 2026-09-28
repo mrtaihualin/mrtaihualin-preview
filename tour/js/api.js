@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=10';
+import { TOUR_CONFIG } from './config.js?v=13';
 
 export class TourApiError extends Error {
   constructor(message, code = 'TOUR_API_ERROR', status = 0) {
@@ -137,7 +137,10 @@ export function extractJoinToken(value) {
   if (!input) return null;
   try {
     const url = new URL(input, window.location.href);
-    return url.searchParams.get('join') || null;
+    const queryToken = url.searchParams.get('join');
+    if (queryToken) return queryToken;
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+    return hashParams.get('join') || null;
   } catch {
     return /^[A-Za-z0-9_-]{32,96}$/u.test(input) ? input : null;
   }
@@ -148,5 +151,6 @@ export function inviteUrl(joinToken) {
   url.search = '';
   url.hash = '';
   url.searchParams.set('join', joinToken);
+  url.hash = new URLSearchParams({ join: joinToken }).toString();
   return url.toString();
 }

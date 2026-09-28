@@ -33,6 +33,11 @@ async function createAndPair(creatorRole, label) {
   assert.equal(preview.creatorRole, creatorRole);
   await rpcMustFail('confirm_session', {
     p_join_token: created.joinToken,
+    p_role: creatorRole,
+    p_label: otherLabel
+  }, 'TOUR_CONFIRM_ROLE_MISMATCH');
+  await rpcMustFail('confirm_session', {
+    p_join_token: created.joinToken,
     p_role: otherRole,
     p_label: ' '
   }, 'TOUR_LABEL_REQUIRED');

@@ -1,7 +1,7 @@
 # MVP V1 Known Limitations
 
 - Free-form machine translation is not enabled. V1 translates the central Chinese/Japanese/English/Thai standard-intent phrases in `js/i18n.js`; unmatched messages remain visible as original text with a clear label.
-- QR generation and scanning use pinned browser modules from jsDelivr. Manual invite-link entry remains available if the CDN or camera API is unavailable.
+- QR generation and scanning use pinned browser modules from jsDelivr. A visible copy/share link remains available if QR generation fails, and manual invite-link entry remains available if the scanner CDN or camera API is unavailable.
 - Google Maps requires a billing-enabled, website-restricted browser key supplied through the deployment secret. Until that key is configured, or whenever Google Maps cannot load, the map automatically uses OpenStreetMap tiles through Leaflet. Turn-by-turn routing still opens Google Maps in a separate tab.
 - Browser Text-to-Speech voice quality and Thai voice availability depend on the device. No paid TTS service is used.
 - Polling can take up to about 2.5 seconds to show remote changes.

@@ -22,6 +22,7 @@ Use Phone A and Phone B on different networks. Use a private/incognito browser p
 8. Confirm, refresh, and verify the selected language and inferred role return without another question.
 9. End the trip and verify each phone returns to its own remembered role-and-language page.
 10. On the scanning phone, first leave an old pending or expired trip in the browser, then scan a new QR; verify the new trip confirmation opens instead of the create-trip screen.
+11. From the confirmation screen tap Back; verify no pairing occurs, the creator remains waiting, and the scanner's prior session is restored when one existed.
 
 ## Customer creates
 
@@ -36,6 +37,7 @@ Use Phone A and Phone B on different networks. Use a private/incognito browser p
 2. On Phone B choose Driver, enter only a vehicle plate, and create the trip.
 3. On Phone A scan it, verify the plate, enter the Customer display name or group name, and confirm.
 4. Verify both phones open the same paired trip and both the customer display name and vehicle plate are shown.
+5. Disable the QR module request in browser developer tools for a disposable trip; verify the creator still sees and can copy/share the invite link.
 
 ## Chat and voice
 

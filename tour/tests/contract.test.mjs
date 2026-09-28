@@ -37,10 +37,10 @@ test('PWA is scoped to the standalone tour module', async () => {
   assert(manifest.icons.some((icon) => icon.sizes === '512x512' && icon.purpose.includes('maskable')));
   assert.match(index, /rel="manifest" href="\.\/manifest\.webmanifest"/);
   assert.match(map, /rel="manifest" href="\.\/manifest\.webmanifest"/);
-  assert.match(index, /src="\.\/js\/app\.js\?v=15"/);
-  assert.match(map, /src="\.\/js\/map\.js\?v=15"/);
-  assert.match(app, /from '\.\/config\.js\?v=15'/);
-  assert.match(mapScript, /from '\.\/config\.js\?v=15'/);
+  assert.match(index, /src="\.\/js\/app\.js\?v=16"/);
+  assert.match(map, /src="\.\/js\/map\.js\?v=16"/);
+  assert.match(app, /from '\.\/config\.js\?v=16'/);
+  assert.match(mapScript, /from '\.\/config\.js\?v=16'/);
   assert.match(app, /registerTourServiceWorker/);
   assert.match(mapScript, /registerTourServiceWorker/);
   assert.match(pwa, /navigator\.serviceWorker\.register\('\.\/sw\.js'/);
@@ -93,6 +93,7 @@ test('language is chosen before role, both choices are remembered, and QR joins 
   assert.match(index, /data-role-choice="customer"/);
   assert.match(index, /data-role-choice="driver"/);
   assert.match(index, /id="confirmOwnLabel"/);
+  assert.match(index, /id="backFromConfirmButton"/);
   assert.match(index, /id="tripCustomerName"/);
   assert.match(index, /id="tripVehiclePlate"/);
   assert.doesNotMatch(index, /data-customer-locale|id="languageView"/);
@@ -113,6 +114,7 @@ test('language is chosen before role, both choices are remembered, and QR joins 
 });
 
 test('scanned invites win over remembered sessions and survive URL handoff variants', async () => {
+  const index = await text('index.html');
   const app = await text('js/app.js');
   const api = await text('js/api.js');
   const initialize = app.slice(app.indexOf('async function initialize()'));
@@ -123,6 +125,11 @@ test('scanned invites win over remembered sessions and survive URL handoff varia
   assert.match(api, /url\.searchParams\.get\('join'\)/);
   assert.match(api, /new URLSearchParams\(url\.hash\.replace/);
   assert.match(api, /url\.hash = new URLSearchParams\(\{ join: joinToken \}\)\.toString\(\)/);
+  assert.match(app, /async function cancelPendingJoin\(\)/);
+  assert.match(app, /addEventListener\('click', cancelPendingJoin\)/);
+  assert.match(app, /async function showPendingTrip\(label, joinToken\)/);
+  assert.match(app, /frame\.hidden = true/);
+  assert.match(index, /id="inviteLinkValue"/);
 });
 
 test('join token parser accepts raw, query, and hash invite values', async () => {
@@ -134,6 +141,7 @@ test('join token parser accepts raw, query, and hash invite values', async () =>
     assert.equal(extractJoinToken(token), token);
     assert.equal(extractJoinToken(`https://example.test/tour/?join=${token}`), token);
     assert.equal(extractJoinToken(`https://example.test/tour/#join=${token}`), token);
+    assert.equal(extractJoinToken(`https://example.test/tour/?join=bad#join=${token}`), token);
     assert.equal(extractJoinToken('not-a-valid-token'), null);
     assert.equal(extractJoinToken('https://example.test/tour/?join=too-short'), null);
   } finally {

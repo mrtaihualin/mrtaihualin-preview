@@ -13,7 +13,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./assets/styles.css?v=15">
+  <link rel="stylesheet" href="./assets/styles.css?v=16">
 </head>
 <body>
   <header class="topbar">
@@ -104,8 +104,14 @@
       <div class="panel center">
         <p class="eyebrow" data-i18n="pairing.waiting">等待對方加入</p>
         <h1 data-i18n="pairing.showQr">請讓對方掃描</h1>
-        <div class="qr-frame"><canvas id="qrCanvas" width="260" height="260"></canvas></div>
+        <div class="qr-frame" id="qrFrame"><canvas id="qrCanvas" width="260" height="260"></canvas></div>
+        <p class="muted" id="qrUnavailableMessage" data-i18n="pairing.qrUnavailable" hidden>無法顯示 QR Code，請改用分享或複製連結。</p>
         <p class="pair-label" id="qrSessionLabel"></p>
+        <label class="sr-only" for="inviteLinkValue" data-i18n="pairing.inviteLink">邀請連結</label>
+        <div class="inline-form">
+          <input id="inviteLinkValue" type="text" readonly>
+          <button class="secondary" id="copyInviteLinkButton" type="button" data-i18n="pairing.copyLink">複製</button>
+        </div>
         <button class="secondary full" id="shareLinkButton" type="button" data-i18n="pairing.shareLink">分享連結</button>
         <p class="muted" data-i18n="pairing.autoOpen">對方確認後，這裡會自動進入旅程。</p>
       </div>
@@ -131,6 +137,7 @@
     </section>
 
     <section class="view hidden" id="confirmView">
+      <button class="back-link" id="backFromConfirmButton" type="button">← <span data-i18n="common.back">返回</span></button>
       <div class="panel center">
         <p class="eyebrow" data-i18n="pairing.confirmEyebrow">請確認這是正確的旅程</p>
         <div class="confirm-icon" aria-hidden="true">✓</div>
@@ -242,6 +249,6 @@
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   </main>
 
-  <script type="module" src="./js/app.js?v=15"></script>
+  <script type="module" src="./js/app.js?v=16"></script>
 </body>
 </html>

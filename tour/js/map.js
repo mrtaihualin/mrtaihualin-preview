@@ -1,7 +1,7 @@
-import { TOUR_CONFIG } from './config.js?v=8';
-import { localeForRole, setLocale, t } from './i18n.js?v=8';
-import { TourApi, clearSession, loadSession } from './api.js?v=8';
-import { registerTourServiceWorker } from './pwa.js?v=8';
+import { TOUR_CONFIG } from './config.js?v=9';
+import { localeForRole, setLocale, t } from './i18n.js?v=9';
+import { TourApi, clearSession, loadSession } from './api.js?v=9';
+import { registerTourServiceWorker } from './pwa.js?v=9';
 
 registerTourServiceWorker();
 
@@ -20,6 +20,9 @@ const acceptButton = document.querySelector('#acceptLocationButton');
 const routeButton = document.querySelector('#routeButton');
 const metButton = document.querySelector('#metButton');
 const stopButton = document.querySelector('#stopLocationButton');
+const recenterButton = document.querySelector('#recenterMapButton');
+const customerName = document.querySelector('#mapCustomerName');
+const vehiclePlate = document.querySelector('#mapVehiclePlate');
 
 let state = null;
 let pollTimer = null;
@@ -33,7 +36,6 @@ let fittedOnce = false;
 let priorShareStatus = null;
 
 const map = window.L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 12);
-window.L.control.zoom({ position: 'topright' }).addTo(map);
 window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors',
   maxZoom: 19
@@ -100,6 +102,8 @@ function updateMarkers(nextState) {
 }
 
 function renderShare(nextState) {
+  customerName.textContent = nextState.session.tripDisplayName || '—';
+  vehiclePlate.textContent = nextState.session.vehiclePlate || '—';
   const share = nextState.locationShare;
   const status = share?.status || 'none';
   setVisible(requestButton, status === 'none' || status === 'ended');
@@ -211,6 +215,22 @@ function locateSelfWithoutSharing() {
   });
 }
 
+function recenterMap() {
+  if (selfMarker) {
+    map.flyTo(selfMarker.getLatLng(), Math.max(map.getZoom(), 15), { duration: .45 });
+    return;
+  }
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition((position) => {
+    handlePosition(position);
+    if (selfMarker) map.flyTo(selfMarker.getLatLng(), 15, { duration: .45 });
+  }, () => notify(t('map.permissionDenied')), {
+    enableHighAccuracy: true,
+    maximumAge: 15000,
+    timeout: 12000
+  });
+}
+
 async function poll({ quiet = true } = {}) {
   try {
     state = await TourApi.getState(session.sessionId, session.accessToken, false);
@@ -272,6 +292,8 @@ metButton.addEventListener('click', () => mutate(
   () => TourApi.stopLocation(session.sessionId, session.accessToken, 'met'),
   'map.shareStopped'
 ));
+
+recenterButton.addEventListener('click', recenterMap);
 
 window.addEventListener('beforeunload', stopLocationWatch);
 document.addEventListener('visibilitychange', () => {

@@ -489,26 +489,90 @@ dialog::backdrop { background: rgba(4, 20, 19, .53); backdrop-filter: blur(3px);
   font-size: .85rem;
 }
 
-.map-page { overflow: hidden; }
-.map-topbar { position: fixed; width: 100%; background: rgba(255, 255, 255, .9); }
+.map-page { overflow: hidden; background: #dce9e5; }
+.map-page .leaflet-control-attribution { font-size: 9px; opacity: .78; }
+.map-page .toast { bottom: calc(48vh + env(safe-area-inset-bottom)); }
+.map-topbar {
+  position: fixed;
+  z-index: 800;
+  top: max(12px, env(safe-area-inset-top));
+  left: 12px;
+  right: 12px;
+  width: auto;
+  min-height: 0;
+  padding: 0;
+  align-items: stretch;
+  background: transparent;
+  border: 0;
+  backdrop-filter: none;
+  pointer-events: none;
+}
+.map-topbar > * { pointer-events: auto; }
+.map-back-button,
+.map-locate-button {
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .97);
+  color: #24413f;
+  box-shadow: 0 3px 14px rgba(35, 62, 59, .24);
+  cursor: pointer;
+}
+.map-back-button { width: 48px; height: 48px; flex: 0 0 48px; font-size: 2rem; line-height: 1; }
+.map-title-card {
+  min-width: 0;
+  min-height: 48px;
+  padding: 7px 13px;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .97);
+  box-shadow: 0 3px 14px rgba(35, 62, 59, .2);
+}
+.map-title-card > strong { display: block; overflow: hidden; font-size: .84rem; text-overflow: ellipsis; white-space: nowrap; }
+.map-trip-summary { margin-top: 3px; display: flex; gap: 10px; color: var(--muted); font-size: .7rem; }
+.map-trip-summary span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-trip-summary b { color: var(--ink); font-weight: 760; }
+.map-topbar .status-pill {
+  width: 48px;
+  min-width: 48px;
+  padding: 0;
+  justify-content: center;
+  background: rgba(255, 255, 255, .97);
+  box-shadow: 0 3px 14px rgba(35, 62, 59, .2);
+}
+.map-topbar .status-pill span:last-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+.map-topbar .status-dot { width: 11px; height: 11px; }
 .map-shell { height: 100dvh; position: relative; }
 #map { position: absolute; inset: 0; background: #dce9e5; }
+.map-locate-button {
+  position: absolute;
+  z-index: 700;
+  right: 16px;
+  bottom: calc(44vh + 26px + env(safe-area-inset-bottom));
+  width: 48px;
+  height: 48px;
+  color: #1769d2;
+  font-size: 1.65rem;
+}
 .map-sheet {
   position: absolute;
   z-index: 500;
-  left: 12px;
-  right: 12px;
-  bottom: calc(12px + env(safe-area-inset-bottom));
+  left: 8px;
+  right: 8px;
+  bottom: calc(8px + env(safe-area-inset-bottom));
   max-height: 44vh;
-  padding: 18px;
+  padding: 10px 18px 18px;
   overflow-y: auto;
   border: 1px solid rgba(216, 226, 222, .9);
-  border-radius: 25px;
-  background: rgba(255, 255, 255, .95);
-  box-shadow: 0 18px 45px rgba(18, 56, 52, .22);
-  backdrop-filter: blur(16px);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, .97);
+  box-shadow: 0 12px 38px rgba(18, 56, 52, .28);
+  backdrop-filter: blur(18px);
 }
 
+.map-sheet-handle { width: 42px; height: 5px; margin: 0 auto 10px; border-radius: 99px; background: #cbd5d1; }
 .map-state-row { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
 .map-state-row h1 { margin: 3px 0 3px; font-size: 1.25rem; }
 .map-state-row p { margin-bottom: 0; }
@@ -517,15 +581,16 @@ dialog::backdrop { background: rgba(4, 20, 19, .53); backdrop-filter: blur(3px);
 .map-actions .full:first-child, .map-actions .primary { grid-column: 1 / -1; }
 .privacy-note { margin: 12px 0 0; color: var(--muted); font-size: .72rem; text-align: center; }
 
-.tour-marker { width: 26px; height: 26px; border: 4px solid white; border-radius: 50%; box-shadow: 0 3px 11px rgba(0, 0, 0, .28); }
-.tour-marker.self { background: var(--brand); }
-.tour-marker.other { background: var(--accent); }
+.tour-marker { width: 28px; height: 28px; border: 5px solid white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0, 0, 0, .24), 0 0 0 8px rgba(26, 115, 232, .16); }
+.tour-marker.self { background: #1a73e8; }
+.tour-marker.other { background: #f59e0b; box-shadow: 0 2px 4px rgba(0, 0, 0, .24), 0 0 0 8px rgba(245, 158, 11, .18); }
 
 @media (min-width: 680px) {
   .shell { padding-top: 34px; }
   .hero-card { min-height: 320px; }
   .role-card { min-height: 175px; }
   .map-sheet { left: 50%; right: auto; width: min(560px, calc(100% - 24px)); transform: translateX(-50%); }
+  .map-topbar { left: 50%; right: auto; width: min(680px, calc(100% - 24px)); transform: translateX(-50%); }
 }
 
 @media (max-width: 340px) {

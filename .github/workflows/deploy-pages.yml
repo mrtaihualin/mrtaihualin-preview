@@ -25,10 +25,18 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
+      - name: Prepare static preview
+        env:
+          TOUR_GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+          TOUR_GOOGLE_MAPS_MAP_ID: ${{ vars.GOOGLE_MAPS_MAP_ID }}
+        run: |
+          mkdir -p _site
+          rsync -a --exclude '.git' --exclude '_site' ./ _site/
+          node -e 'const fs = require("fs"); const config = { googleMapsApiKey: process.env.TOUR_GOOGLE_MAPS_API_KEY || "", googleMapsMapId: process.env.TOUR_GOOGLE_MAPS_MAP_ID || "" }; fs.writeFileSync("_site/tour/js/runtime-config.js", `export const TOUR_RUNTIME_CONFIG = Object.freeze(${JSON.stringify(config)});\n`);'
       - name: Upload static preview
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4

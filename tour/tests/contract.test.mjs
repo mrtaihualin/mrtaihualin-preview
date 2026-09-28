@@ -37,10 +37,10 @@ test('PWA is scoped to the standalone tour module', async () => {
   assert(manifest.icons.some((icon) => icon.sizes === '512x512' && icon.purpose.includes('maskable')));
   assert.match(index, /rel="manifest" href="\.\/manifest\.webmanifest"/);
   assert.match(map, /rel="manifest" href="\.\/manifest\.webmanifest"/);
-  assert.match(index, /src="\.\/js\/app\.js\?v=9"/);
-  assert.match(map, /src="\.\/js\/map\.js\?v=9"/);
-  assert.match(app, /from '\.\/config\.js\?v=9'/);
-  assert.match(mapScript, /from '\.\/config\.js\?v=9'/);
+  assert.match(index, /src="\.\/js\/app\.js\?v=10"/);
+  assert.match(map, /src="\.\/js\/map\.js\?v=10"/);
+  assert.match(app, /from '\.\/config\.js\?v=10'/);
+  assert.match(mapScript, /from '\.\/config\.js\?v=10'/);
   assert.match(app, /registerTourServiceWorker/);
   assert.match(mapScript, /registerTourServiceWorker/);
   assert.match(pwa, /navigator\.serviceWorker\.register\('\.\/sw\.js'/);
@@ -124,11 +124,24 @@ test('map instance is created once and markers are moved in place', async () => 
   const map = await text('js/map.js');
   assert.equal((map.match(/window\.L\.map\(/g) || []).length, 1);
   assert.match(map, /existing\.setLatLng\(latLng\)/);
+  assert.match(map, /existing\.position = nextPosition/);
+  assert.match(map, /AdvancedMarkerElement/);
+  assert.match(map, /googleMapsApiKey/);
+  assert.match(map, /initializeLeafletMap\(\)/);
   assert.match(page, /id="mapCustomerName"/);
   assert.match(page, /id="mapVehiclePlate"/);
   assert.match(page, /id="recenterMapButton"/);
-  assert.match(map, /map\.flyTo\(selfMarker\.getLatLng\(\)/);
+  assert.match(map, /map\.flyTo\(\[selfPosition\.latitude, selfPosition\.longitude\]/);
   assert.doesNotMatch(map, /replaceChildren\([^)]*map/);
+});
+
+test('Pages deployment injects Google Maps config without committing a key', async () => {
+  const workflow = await readFile(path.resolve(root, '..', '.github/workflows/deploy-pages.yml'), 'utf8');
+  const runtime = await text('js/runtime-config.js');
+  assert.match(workflow, /secrets\.GOOGLE_MAPS_API_KEY/);
+  assert.match(workflow, /_site\/tour\/js\/runtime-config\.js/);
+  assert.match(runtime, /googleMapsApiKey: ''/);
+  assert.doesNotMatch(runtime, /AIza[0-9A-Za-z_-]+/);
 });
 
 test('locale and intent architecture includes all planned locales', async () => {

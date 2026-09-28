@@ -53,15 +53,16 @@ Use Phone A and Phone B on different networks. Use a private/incognito browser p
 
 ## Location
 
-1. Request location from either phone and verify the other phone must accept.
-2. Accept and grant browser location permission on both phones.
-3. Verify one stable map shows self and other-party markers.
-4. Move one phone and verify its marker moves without recreating/flickering the map.
-5. Verify the route button opens directions to the other party.
-6. Stop sharing and verify both sides lose the other-party marker.
-7. Start a new request, accept, tap “Met,” and verify sharing stops immediately.
-8. Verify an extension cannot occur without a new request.
-9. Backend test: set a disposable active share to expired in staging, call state, and verify both latest-location rows are removed.
+1. With `GOOGLE_MAPS_API_KEY` configured, inspect the map page and verify `document.documentElement.dataset.mapProvider` is `google`; temporarily remove the deployment key in an isolated preview and verify it becomes `leaflet` without breaking the trip flow.
+2. Request location from either phone and verify the other phone must accept.
+3. Accept and grant browser location permission on both phones.
+4. Verify one stable map shows self and other-party markers.
+5. Move one phone and verify its marker moves without recreating/flickering the map.
+6. Verify the route button opens directions to the other party.
+7. Stop sharing and verify both sides lose the other-party marker.
+8. Start a new request, accept, tap “Met,” and verify sharing stops immediately.
+9. Verify an extension cannot occur without a new request.
+10. Backend test: set a disposable active share to expired in staging, call state, and verify both latest-location rows are removed.
 
 ## Recovery and closure
 

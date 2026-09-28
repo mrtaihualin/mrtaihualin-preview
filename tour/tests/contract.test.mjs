@@ -37,10 +37,10 @@ test('PWA is scoped to the standalone tour module', async () => {
   assert(manifest.icons.some((icon) => icon.sizes === '512x512' && icon.purpose.includes('maskable')));
   assert.match(index, /rel="manifest" href="\.\/manifest\.webmanifest"/);
   assert.match(map, /rel="manifest" href="\.\/manifest\.webmanifest"/);
-  assert.match(index, /src="\.\/js\/app\.js\?v=13"/);
-  assert.match(map, /src="\.\/js\/map\.js\?v=13"/);
-  assert.match(app, /from '\.\/config\.js\?v=13'/);
-  assert.match(mapScript, /from '\.\/config\.js\?v=13'/);
+  assert.match(index, /src="\.\/js\/app\.js\?v=15"/);
+  assert.match(map, /src="\.\/js\/map\.js\?v=15"/);
+  assert.match(app, /from '\.\/config\.js\?v=15'/);
+  assert.match(mapScript, /from '\.\/config\.js\?v=15'/);
   assert.match(app, /registerTourServiceWorker/);
   assert.match(mapScript, /registerTourServiceWorker/);
   assert.match(pwa, /navigator\.serviceWorker\.register\('\.\/sw\.js'/);
@@ -123,6 +123,23 @@ test('scanned invites win over remembered sessions and survive URL handoff varia
   assert.match(api, /url\.searchParams\.get\('join'\)/);
   assert.match(api, /new URLSearchParams\(url\.hash\.replace/);
   assert.match(api, /url\.hash = new URLSearchParams\(\{ join: joinToken \}\)\.toString\(\)/);
+});
+
+test('join token parser accepts raw, query, and hash invite values', async () => {
+  const originalWindow = globalThis.window;
+  globalThis.window = { location: { href: 'https://example.test/tour/' } };
+  try {
+    const { extractJoinToken } = await import('../js/api.js?join-token-parser-test');
+    const token = 'Abcdefghijklmnopqrstuvwxyz0123456789_-TOKEN';
+    assert.equal(extractJoinToken(token), token);
+    assert.equal(extractJoinToken(`https://example.test/tour/?join=${token}`), token);
+    assert.equal(extractJoinToken(`https://example.test/tour/#join=${token}`), token);
+    assert.equal(extractJoinToken('not-a-valid-token'), null);
+    assert.equal(extractJoinToken('https://example.test/tour/?join=too-short'), null);
+  } finally {
+    if (originalWindow === undefined) delete globalThis.window;
+    else globalThis.window = originalWindow;
+  }
 });
 
 test('user content is rendered as text and not HTML', async () => {

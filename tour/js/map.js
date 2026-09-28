@@ -1,8 +1,8 @@
-import { TOUR_CONFIG } from './config.js?v=13';
-import { TOUR_RUNTIME_CONFIG } from './runtime-config.js?v=13';
-import { localeForRole, setLocale, t } from './i18n.js?v=13';
-import { TourApi, clearSession, loadSession } from './api.js?v=13';
-import { registerTourServiceWorker } from './pwa.js?v=13';
+import { TOUR_CONFIG } from './config.js?v=15';
+import { TOUR_RUNTIME_CONFIG } from './runtime-config.js?v=15';
+import { localeForRole, setLocale, t } from './i18n.js?v=15';
+import { TourApi, clearSession, loadSession } from './api.js?v=15';
+import { registerTourServiceWorker } from './pwa.js?v=15';
 
 registerTourServiceWorker();
 

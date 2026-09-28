@@ -15,6 +15,7 @@ Standalone mobile-first module for temporary communication between a foreign tou
 - Pairing identity: the creator enters their own customer display name or vehicle plate; the scanner enters the missing value before confirming, so the paired trip shows both
 - Session lifetime: expires after seven days without explicit foreground use or a meaningful write
 - Location consent: one request, one acceptance, exactly 20 minutes; a new request is required to extend
+- Map provider: Google Maps when the restricted deployment key is configured; OpenStreetMap/Leaflet remains the automatic no-key/load-failure fallback
 
 No code or runtime logic is imported from the existing language-learning website. The only shared infrastructure is the existing staging Supabase project and GitHub Pages preview host.
 
@@ -50,6 +51,13 @@ python3 -m http.server 8080
 ```
 
 Camera and geolocation require HTTPS outside `localhost`; use the GitHub Pages staging URL for phone tests.
+
+## Google Maps deployment
+
+- Add the restricted browser key as the GitHub Actions secret `GOOGLE_MAPS_API_KEY`.
+- Optionally add a Google Maps map ID as the repository variable `GOOGLE_MAPS_MAP_ID`; otherwise the Google demo map ID is used for the basic marker preview.
+- Restrict the browser key to `https://mrtaihualin.github.io/mrtaihualin-preview/*` and to the Maps JavaScript API only.
+- The workflow writes the key only into the deployed static artifact. The repository keeps an empty runtime config, and the map automatically falls back to OpenStreetMap if the secret is absent or Google Maps fails to load.
 
 ## Install on a phone
 

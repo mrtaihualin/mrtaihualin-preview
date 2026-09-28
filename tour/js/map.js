@@ -1,7 +1,8 @@
-import { TOUR_CONFIG } from './config.js?v=9';
-import { localeForRole, setLocale, t } from './i18n.js?v=9';
-import { TourApi, clearSession, loadSession } from './api.js?v=9';
-import { registerTourServiceWorker } from './pwa.js?v=9';
+import { TOUR_CONFIG } from './config.js?v=10';
+import { TOUR_RUNTIME_CONFIG } from './runtime-config.js?v=10';
+import { localeForRole, setLocale, t } from './i18n.js?v=10';
+import { TourApi, clearSession, loadSession } from './api.js?v=10';
+import { registerTourServiceWorker } from './pwa.js?v=10';
 
 registerTourServiceWorker();
 
@@ -34,17 +35,65 @@ let selfMarker = null;
 let otherMarker = null;
 let fittedOnce = false;
 let priorShareStatus = null;
+let map = null;
+let mapProvider = 'leaflet';
 
-const map = window.L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 12);
-window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors',
-  maxZoom: 19
-}).addTo(map);
+const DEFAULT_CENTER = { latitude: 13.7563, longitude: 100.5018 };
 
-const icons = {
-  self: window.L.divIcon({ className: '', html: '<div class="tour-marker self"></div>', iconSize: [26, 26], iconAnchor: [13, 13] }),
-  other: window.L.divIcon({ className: '', html: '<div class="tour-marker other"></div>', iconSize: [26, 26], iconAnchor: [13, 13] })
-};
+function loadGoogleMaps(apiKey) {
+  if (window.google?.maps?.importLibrary) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const callbackName = '__tourGoogleMapsReady';
+    window[callbackName] = () => {
+      delete window[callbackName];
+      resolve();
+    };
+    const script = document.createElement('script');
+    script.async = true;
+    script.defer = true;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&v=weekly&loading=async&libraries=marker&callback=${callbackName}`;
+    script.onerror = () => {
+      delete window[callbackName];
+      reject(new Error('GOOGLE_MAPS_LOAD_FAILED'));
+    };
+    document.head.append(script);
+  });
+}
+
+function initializeLeafletMap() {
+  if (!window.L) throw new Error('LEAFLET_UNAVAILABLE');
+  mapProvider = 'leaflet';
+  map = window.L.map('map', { zoomControl: false }).setView([DEFAULT_CENTER.latitude, DEFAULT_CENTER.longitude], 12);
+  window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(map);
+}
+
+async function initializeMap() {
+  const apiKey = TOUR_RUNTIME_CONFIG.googleMapsApiKey?.trim();
+  if (apiKey) {
+    try {
+      await loadGoogleMaps(apiKey);
+      const { Map } = await window.google.maps.importLibrary('maps');
+      await window.google.maps.importLibrary('marker');
+      mapProvider = 'google';
+      map = new Map(document.querySelector('#map'), {
+        center: { lat: DEFAULT_CENTER.latitude, lng: DEFAULT_CENTER.longitude },
+        zoom: 12,
+        mapId: TOUR_RUNTIME_CONFIG.googleMapsMapId || 'DEMO_MAP_ID',
+        disableDefaultUI: true,
+        gestureHandling: 'greedy'
+      });
+    } catch (error) {
+      console.warn('Google Maps unavailable; using OpenStreetMap fallback.', error);
+      initializeLeafletMap();
+    }
+  } else {
+    initializeLeafletMap();
+  }
+  document.documentElement.dataset.mapProvider = mapProvider;
+}
 
 function setConnection(kind, key) {
   connectionStatus.className = `status-pill ${kind}`;
@@ -62,41 +111,100 @@ function setVisible(element, visible) {
   element.classList.toggle('hidden', !visible);
 }
 
-function markerForPosition(existing, position, icon, label) {
+function markerElement(kind) {
+  const marker = document.createElement('div');
+  marker.className = `tour-marker ${kind}`;
+  return marker;
+}
+
+function markerForPosition(existing, position, kind, label) {
+  if (mapProvider === 'google') {
+    const nextPosition = { lat: position.latitude, lng: position.longitude };
+    if (existing) {
+      existing.position = nextPosition;
+      existing.title = label;
+      return existing;
+    }
+    return new window.google.maps.marker.AdvancedMarkerElement({
+      map,
+      position: nextPosition,
+      content: markerElement(kind),
+      title: label
+    });
+  }
+
   const latLng = [position.latitude, position.longitude];
   if (existing) {
     existing.setLatLng(latLng);
     return existing;
   }
+  const icon = window.L.divIcon({
+    className: '',
+    html: `<div class="tour-marker ${kind}"></div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14]
+  });
   return window.L.marker(latLng, { icon }).addTo(map).bindTooltip(label, { direction: 'top' });
 }
 
+function removeMarker(marker) {
+  if (!marker) return;
+  if (mapProvider === 'google') marker.map = null;
+  else map.removeLayer(marker);
+}
+
+function centerMap(position, zoom = 15) {
+  if (!position || !map) return;
+  if (mapProvider === 'google') {
+    map.setCenter({ lat: position.latitude, lng: position.longitude });
+    map.setZoom(zoom);
+  } else {
+    map.setView([position.latitude, position.longitude], zoom);
+  }
+}
+
+function fitParticipantPositions(positions) {
+  if (mapProvider === 'google') {
+    const bounds = new window.google.maps.LatLngBounds();
+    positions.forEach((position) => bounds.extend({ lat: position.latitude, lng: position.longitude }));
+    map.fitBounds(bounds, { top: 120, right: 48, bottom: 300, left: 48 });
+    window.google.maps.event.addListenerOnce(map, 'idle', () => {
+      if (map.getZoom() > 16) map.setZoom(16);
+    });
+  } else {
+    map.fitBounds(
+      positions.map((position) => [position.latitude, position.longitude]),
+      { padding: [48, 48], maxZoom: 16 }
+    );
+  }
+}
+
 function updateMarkers(nextState) {
-  if (selfPosition) selfMarker = markerForPosition(selfMarker, selfPosition, icons.self, t('map.selfMarker'));
+  if (selfPosition) selfMarker = markerForPosition(selfMarker, selfPosition, 'self', t('map.selfMarker'));
 
   const other = nextState.locations?.find((location) => location.role !== session.role);
   if (nextState.locationShare?.status === 'active' && other) {
     otherMarker = markerForPosition(
       otherMarker,
       other,
-      icons.other,
+      'other',
       session.role === 'driver' ? t('map.customerMarker') : t('map.driverMarker')
     );
     routeButton.href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(other.latitude)},${encodeURIComponent(other.longitude)}`;
     setVisible(routeButton, true);
   } else {
-    if (otherMarker) map.removeLayer(otherMarker);
+    removeMarker(otherMarker);
     otherMarker = null;
     setVisible(routeButton, false);
   }
 
   if (!fittedOnce) {
-    const markers = [selfMarker, otherMarker].filter(Boolean);
-    if (markers.length === 2) {
-      map.fitBounds(window.L.featureGroup(markers).getBounds().pad(.35), { maxZoom: 16 });
+    const positions = [selfPosition, nextState.locationShare?.status === 'active' ? other : null].filter(Boolean);
+    if (positions.length === 2) {
+      fitParticipantPositions(positions);
       fittedOnce = true;
-    } else if (selfMarker) {
-      map.setView(selfMarker.getLatLng(), 15);
+    } else if (selfPosition) {
+      centerMap(selfPosition, 15);
     }
   }
 }
@@ -188,8 +296,8 @@ function handlePosition(position) {
     longitude: position.coords.longitude,
     accuracy: position.coords.accuracy
   };
-  selfMarker = markerForPosition(selfMarker, selfPosition, icons.self, session.role === 'driver' ? 'ฉัน' : '我');
-  if (!fittedOnce && !otherMarker) map.setView(selfMarker.getLatLng(), 15);
+  selfMarker = markerForPosition(selfMarker, selfPosition, 'self', t('map.selfMarker'));
+  if (!fittedOnce && !otherMarker) centerMap(selfPosition, 15);
   uploadLocation(position);
 }
 
@@ -216,14 +324,20 @@ function locateSelfWithoutSharing() {
 }
 
 function recenterMap() {
-  if (selfMarker) {
-    map.flyTo(selfMarker.getLatLng(), Math.max(map.getZoom(), 15), { duration: .45 });
+  if (selfPosition) {
+    if (mapProvider === 'google') {
+      map.panTo({ lat: selfPosition.latitude, lng: selfPosition.longitude });
+      map.setZoom(Math.max(map.getZoom() || 0, 15));
+    } else {
+      map.flyTo([selfPosition.latitude, selfPosition.longitude], Math.max(map.getZoom(), 15), { duration: .45 });
+    }
     return;
   }
   if (!navigator.geolocation) return;
   navigator.geolocation.getCurrentPosition((position) => {
     handlePosition(position);
-    if (selfMarker) map.flyTo(selfMarker.getLatLng(), 15, { duration: .45 });
+    if (mapProvider === 'google') map.panTo({ lat: selfPosition.latitude, lng: selfPosition.longitude });
+    else map.flyTo([selfPosition.latitude, selfPosition.longitude], 15, { duration: .45 });
   }, () => notify(t('map.permissionDenied')), {
     enableHighAccuracy: true,
     maximumAge: 15000,
@@ -300,5 +414,10 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') poll({ quiet: true });
 });
 
-locateSelfWithoutSharing();
-poll({ quiet: false });
+async function bootstrap() {
+  await initializeMap();
+  locateSelfWithoutSharing();
+  poll({ quiet: false });
+}
+
+bootstrap().catch(() => notify(t('common.error')));

@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=8';
+import { TOUR_CONFIG } from './config.js?v=9';
 import {
   INTENTS,
   detectIntent,
@@ -9,7 +9,7 @@ import {
   setLocale,
   t,
   translateIntent
-} from './i18n.js?v=8';
+} from './i18n.js?v=9';
 import {
   TourApi,
   TourApiError,
@@ -18,8 +18,8 @@ import {
   inviteUrl,
   loadSession,
   saveSession
-} from './api.js?v=8';
-import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=8';
+} from './api.js?v=9';
+import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=9';
 
 const views = [...document.querySelectorAll('.view')];
 const connectionStatus = document.querySelector('#connectionStatus');

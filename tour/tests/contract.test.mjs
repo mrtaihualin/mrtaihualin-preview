@@ -37,10 +37,10 @@ test('PWA is scoped to the standalone tour module', async () => {
   assert(manifest.icons.some((icon) => icon.sizes === '512x512' && icon.purpose.includes('maskable')));
   assert.match(index, /rel="manifest" href="\.\/manifest\.webmanifest"/);
   assert.match(map, /rel="manifest" href="\.\/manifest\.webmanifest"/);
-  assert.match(index, /src="\.\/js\/app\.js\?v=8"/);
-  assert.match(map, /src="\.\/js\/map\.js\?v=8"/);
-  assert.match(app, /from '\.\/config\.js\?v=8'/);
-  assert.match(mapScript, /from '\.\/config\.js\?v=8'/);
+  assert.match(index, /src="\.\/js\/app\.js\?v=9"/);
+  assert.match(map, /src="\.\/js\/map\.js\?v=9"/);
+  assert.match(app, /from '\.\/config\.js\?v=9'/);
+  assert.match(mapScript, /from '\.\/config\.js\?v=9'/);
   assert.match(app, /registerTourServiceWorker/);
   assert.match(mapScript, /registerTourServiceWorker/);
   assert.match(pwa, /navigator\.serviceWorker\.register\('\.\/sw\.js'/);
@@ -120,9 +120,14 @@ test('user content is rendered as text and not HTML', async () => {
 });
 
 test('map instance is created once and markers are moved in place', async () => {
+  const page = await text('map.html');
   const map = await text('js/map.js');
   assert.equal((map.match(/window\.L\.map\(/g) || []).length, 1);
   assert.match(map, /existing\.setLatLng\(latLng\)/);
+  assert.match(page, /id="mapCustomerName"/);
+  assert.match(page, /id="mapVehiclePlate"/);
+  assert.match(page, /id="recenterMapButton"/);
+  assert.match(map, /map\.flyTo\(selfMarker\.getLatLng\(\)/);
   assert.doesNotMatch(map, /replaceChildren\([^)]*map/);
 });
 

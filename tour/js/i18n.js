@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=8';
+import { TOUR_CONFIG } from './config.js?v=9';
 
 export const UI = Object.freeze({
   'zh-TW': {
@@ -98,6 +98,7 @@ export const UI = Object.freeze({
     'appointment.created': '集合時間已送出',
     'map.title': '即時位置',
     'map.canvas': '顯示雙方位置的地圖',
+    'map.recenter': '回到我的位置',
     'map.closed': '尚未分享',
     'map.shareState': '位置分享狀態',
     'map.requestHelp': '任何一方都可以提出分享要求。',
@@ -218,6 +219,7 @@ export const UI = Object.freeze({
     'appointment.created': 'ส่งนัดหมายแล้ว',
     'map.title': 'ตำแหน่งเรียลไทม์',
     'map.canvas': 'แผนที่แสดงตำแหน่งของทั้งสองฝ่าย',
+    'map.recenter': 'กลับไปที่ตำแหน่งของฉัน',
     'map.closed': 'ยังไม่แชร์',
     'map.shareState': 'สถานะการแชร์ตำแหน่ง',
     'map.requestHelp': 'ทั้งสองฝ่ายขอแชร์ตำแหน่งได้',
@@ -338,6 +340,7 @@ export const UI = Object.freeze({
     'appointment.created': '待ち合わせを送信しました',
     'map.title': '現在地',
     'map.canvas': '二人の位置を表示する地図',
+    'map.recenter': '現在地に戻る',
     'map.closed': '共有していません',
     'map.shareState': '位置情報の共有状況',
     'map.requestHelp': 'どちらからでも位置情報の共有をリクエストできます。',
@@ -458,6 +461,7 @@ export const UI = Object.freeze({
     'appointment.created': 'Meeting sent',
     'map.title': 'Live location',
     'map.canvas': 'Map showing both participants',
+    'map.recenter': 'Center on my location',
     'map.closed': 'Not sharing',
     'map.shareState': 'Location sharing status',
     'map.requestHelp': 'Either person can request location sharing.',

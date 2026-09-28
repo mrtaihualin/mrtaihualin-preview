@@ -1,4 +1,6 @@
-import { TOUR_CONFIG } from './config.js?v=13';
+import { TOUR_CONFIG } from './config.js?v=15';
+
+const JOIN_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,96}$/u;
 
 export class TourApiError extends Error {
   constructor(message, code = 'TOUR_API_ERROR', status = 0) {
@@ -135,14 +137,16 @@ export function clearSession() {
 export function extractJoinToken(value) {
   const input = String(value || '').trim();
   if (!input) return null;
+  if (JOIN_TOKEN_PATTERN.test(input)) return input;
   try {
     const url = new URL(input, window.location.href);
     const queryToken = url.searchParams.get('join');
-    if (queryToken) return queryToken;
+    if (queryToken) return JOIN_TOKEN_PATTERN.test(queryToken) ? queryToken : null;
     const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
-    return hashParams.get('join') || null;
+    const hashToken = hashParams.get('join');
+    return hashToken && JOIN_TOKEN_PATTERN.test(hashToken) ? hashToken : null;
   } catch {
-    return /^[A-Za-z0-9_-]{32,96}$/u.test(input) ? input : null;
+    return null;
   }
 }
 

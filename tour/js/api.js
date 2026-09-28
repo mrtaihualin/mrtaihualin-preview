@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=7';
+import { TOUR_CONFIG } from './config.js?v=8';
 
 export class TourApiError extends Error {
   constructor(message, code = 'TOUR_API_ERROR', status = 0) {

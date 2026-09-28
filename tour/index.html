@@ -13,7 +13,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./assets/styles.css?v=7">
+  <link rel="stylesheet" href="./assets/styles.css?v=8">
 </head>
 <body>
   <header class="topbar">
@@ -33,10 +33,10 @@
         <span class="language-icon" aria-hidden="true">🌐</span>
         <h1 class="sr-only" id="languagePickerTitle">Choose your language</h1>
         <div class="language-options">
-          <button class="secondary full" type="button" data-locale-choice="zh-TW">繁體中文</button>
-          <button class="secondary full" type="button" data-locale-choice="th">ภาษาไทย</button>
-          <button class="secondary full" type="button" data-locale-choice="ja">日本語</button>
-          <button class="secondary full" type="button" data-locale-choice="en">English</button>
+          <button class="language-choice" type="button" data-locale-choice="zh-TW"><span class="language-flag" aria-hidden="true">🇹🇼</span><strong>繁體中文</strong></button>
+          <button class="language-choice" type="button" data-locale-choice="th"><span class="language-flag" aria-hidden="true">🇹🇭</span><strong>ภาษาไทย</strong></button>
+          <button class="language-choice" type="button" data-locale-choice="ja"><span class="language-flag" aria-hidden="true">🇯🇵</span><strong>日本語</strong></button>
+          <button class="language-choice" type="button" data-locale-choice="en"><span class="language-flag" aria-hidden="true">🇬🇧</span><strong>English</strong></button>
         </div>
       </div>
     </section>
@@ -57,7 +57,9 @@
         <span aria-hidden="true">›</span>
       </button>
 
-      <button class="back-link" id="changeLanguageButton" type="button">← <span data-i18n="language.change">切換語言</span></button>
+      <div class="pretrip-preferences single">
+        <button class="preference-button" id="changeLanguageButton" type="button" data-current-language>🇹🇼 繁體中文 ▾</button>
+      </div>
       <h2 class="role-title" data-i18n="role.title">選擇身分</h2>
       <p class="role-note" data-i18n="role.note">選擇後會記住，下次可直接開啟。</p>
 
@@ -78,7 +80,10 @@
     </section>
 
     <section class="view hidden" id="createView">
-      <button class="back-link" id="changeRoleButton" type="button">⇄ <span data-i18n="role.change">切換身分</span></button>
+      <div class="pretrip-preferences">
+        <button class="preference-button" id="changeLanguageFromCreateButton" type="button" data-current-language>🇹🇼 繁體中文 ▾</button>
+        <button class="preference-button" id="changeRoleButton" type="button" data-current-role>🧳 我是旅客 ▾</button>
+      </div>
       <div class="panel">
         <p class="eyebrow" id="createEyebrow"></p>
         <h1 id="createTitle"></h1>
@@ -237,6 +242,6 @@
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   </main>
 
-  <script type="module" src="./js/app.js?v=7"></script>
+  <script type="module" src="./js/app.js?v=8"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=15';
+import { TOUR_CONFIG } from './config.js?v=16';
 
 export const UI = Object.freeze({
   'zh-TW': {
@@ -43,6 +43,11 @@ export const UI = Object.freeze({
     'create.driverButton': '建立並顯示 QR Code',
     'pairing.waiting': '等待對方加入',
     'pairing.showQr': '請讓對方掃描',
+    'pairing.inviteLink': '邀請連結',
+    'pairing.copyLink': '複製',
+    'pairing.copyManually': '無法自動複製，請長按連結複製。',
+    'pairing.qrUnavailable': '無法顯示 QR Code，請改用分享或複製連結。',
+    'pairing.invalidInvite': '此 QR Code 無效、已過期或已使用。請返回後重新掃描。',
     'pairing.shareLink': '分享連結',
     'pairing.autoOpen': '對方確認後，這裡會自動進入旅程。',
     'pairing.confirmEyebrow': '請確認這是正確的旅程',
@@ -164,6 +169,11 @@ export const UI = Object.freeze({
     'create.driverButton': 'สร้างและแสดง QR Code',
     'pairing.waiting': 'รออีกฝ่ายเข้าร่วม',
     'pairing.showQr': 'ให้อีกฝ่ายสแกน',
+    'pairing.inviteLink': 'ลิงก์เชิญ',
+    'pairing.copyLink': 'คัดลอก',
+    'pairing.copyManually': 'คัดลอกอัตโนมัติไม่ได้ กรุณากดค้างที่ลิงก์เพื่อคัดลอก',
+    'pairing.qrUnavailable': 'ไม่สามารถแสดง QR Code ได้ ให้ใช้ปุ่มแชร์หรือคัดลอกลิงก์แทน',
+    'pairing.invalidInvite': 'QR นี้ไม่ถูกต้อง หมดอายุ หรือถูกใช้แล้ว กรุณาย้อนกลับแล้วสแกนใหม่',
     'pairing.shareLink': 'แชร์ลิงก์',
     'pairing.autoOpen': 'เมื่ออีกฝ่ายยืนยัน หน้านี้จะเข้าสู่ทริปโดยอัตโนมัติ',
     'pairing.confirmEyebrow': 'ตรวจสอบว่าเป็นทริปที่ถูกต้อง',
@@ -285,6 +295,11 @@ export const UI = Object.freeze({
     'create.driverButton': '作成してQRコードを表示',
     'pairing.waiting': '相手の参加を待っています',
     'pairing.showQr': '相手にスキャンしてもらってください',
+    'pairing.inviteLink': '招待リンク',
+    'pairing.copyLink': 'コピー',
+    'pairing.copyManually': '自動でコピーできません。リンクを長押ししてコピーしてください。',
+    'pairing.qrUnavailable': 'QRコードを表示できません。リンクの共有またはコピーをお使いください。',
+    'pairing.invalidInvite': 'このQRコードは無効、期限切れ、または使用済みです。戻って再度スキャンしてください。',
     'pairing.shareLink': 'リンクを共有',
     'pairing.autoOpen': '相手が確認すると、自動的に旅行画面へ移動します。',
     'pairing.confirmEyebrow': '正しい旅行か確認してください',
@@ -406,6 +421,11 @@ export const UI = Object.freeze({
     'create.driverButton': 'Create and show QR code',
     'pairing.waiting': 'Waiting for the other person',
     'pairing.showQr': 'Ask the other person to scan',
+    'pairing.inviteLink': 'Invite link',
+    'pairing.copyLink': 'Copy',
+    'pairing.copyManually': 'Automatic copy was unavailable. Press and hold the link to copy it.',
+    'pairing.qrUnavailable': 'The QR code could not be displayed. Share or copy the link instead.',
+    'pairing.invalidInvite': 'This QR code is invalid, expired, or already used. Go back and scan again.',
     'pairing.shareLink': 'Share link',
     'pairing.autoOpen': 'This page will open the trip automatically after the other person confirms.',
     'pairing.confirmEyebrow': 'Check that this is the correct trip',

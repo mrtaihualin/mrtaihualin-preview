@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=15';
+import { TOUR_CONFIG } from './config.js?v=16';
 import {
   INTENTS,
   detectIntent,
@@ -9,7 +9,7 @@ import {
   setLocale,
   t,
   translateIntent
-} from './i18n.js?v=15';
+} from './i18n.js?v=16';
 import {
   TourApi,
   TourApiError,
@@ -18,8 +18,8 @@ import {
   inviteUrl,
   loadSession,
   saveSession
-} from './api.js?v=15';
-import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=15';
+} from './api.js?v=16';
+import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=16';
 
 const views = [...document.querySelectorAll('.view')];
 const connectionStatus = document.querySelector('#connectionStatus');
@@ -120,7 +120,7 @@ function humanError(error) {
   const code = error instanceof TourApiError ? error.code : '';
   if (['TOUR_SESSION_EXPIRED', 'TOUR_JOIN_EXPIRED'].includes(code)) return t('common.expired');
   if (code === 'TOUR_SESSION_ENDED') return t('trip.ended');
-  if (code === 'TOUR_ALREADY_PAIRED') return t('pairing.paired');
+  if (['TOUR_JOIN_INVALID', 'TOUR_ALREADY_PAIRED'].includes(code)) return t('pairing.invalidInvite');
   return t('common.error');
 }
 
@@ -367,14 +367,30 @@ async function createTrip(event) {
       joinToken: created.joinToken
     });
     setLocale(selectedLocale);
-    document.querySelector('#qrSessionLabel').textContent = label;
-    await renderQr(inviteUrl(created.joinToken));
-    showView('qrView');
+    await showPendingTrip(label, created.joinToken);
     await pollState({ touch: true, quiet: true });
   } catch (error) {
     notify(humanError(error));
   } finally {
     setBusy(button, false);
+  }
+}
+
+async function showPendingTrip(label, joinToken) {
+  const url = inviteUrl(joinToken);
+  const frame = document.querySelector('#qrFrame');
+  const fallback = document.querySelector('#qrUnavailableMessage');
+  document.querySelector('#qrSessionLabel').textContent = label;
+  document.querySelector('#inviteLinkValue').value = url;
+  frame.hidden = false;
+  fallback.hidden = true;
+  showView('qrView');
+  try {
+    await renderQr(url);
+  } catch {
+    frame.hidden = true;
+    fallback.hidden = false;
+    notify(t('pairing.qrUnavailable'));
   }
 }
 
@@ -409,7 +425,7 @@ async function startScanner() {
 async function openJoinValue(value) {
   const joinToken = extractJoinToken(value);
   if (!joinToken) {
-    notify(t('common.error'));
+    notify(t('pairing.invalidInvite'));
     return false;
   }
   qrScanner?.stop();
@@ -578,6 +594,32 @@ async function shareInvite() {
   }
 }
 
+async function copyInviteLink() {
+  if (!session?.joinToken) return;
+  try {
+    await navigator.clipboard.writeText(inviteUrl(session.joinToken));
+    notify(t('pairing.linkCopied'));
+  } catch {
+    const input = document.querySelector('#inviteLinkValue');
+    input.focus();
+    input.select();
+    notify(t('pairing.copyManually'));
+  }
+}
+
+async function cancelPendingJoin() {
+  pendingJoin = null;
+  qrScanner?.stop();
+  history.replaceState({}, '', new URL('./', window.location.href).pathname);
+  if (session) {
+    savePreferredRole(session.role, session.locale);
+    setLocale(localeForRole(session.role, session.locale));
+    await pollState({ touch: true });
+    return;
+  }
+  showRoleHome();
+}
+
 function selectRole(role, { locale = null, persist = true, focus = true } = {}) {
   if (!['customer', 'driver'].includes(role)) return;
   selectedRole = role;
@@ -661,18 +703,10 @@ function wireEvents() {
     openJoinValue(document.querySelector('#manualJoinInput').value);
   });
   document.querySelector('#confirmForm').addEventListener('submit', confirmPairing);
-  document.querySelector('#rejectPairButton').addEventListener('click', async () => {
-    pendingJoin = null;
-    history.replaceState({}, '', new URL('./', window.location.href).pathname);
-    if (session) {
-      savePreferredRole(session.role, session.locale);
-      setLocale(localeForRole(session.role, session.locale));
-      await pollState({ touch: true });
-      return;
-    }
-    showRoleHome();
-  });
+  document.querySelector('#backFromConfirmButton').addEventListener('click', cancelPendingJoin);
+  document.querySelector('#rejectPairButton').addEventListener('click', cancelPendingJoin);
   document.querySelector('#shareLinkButton').addEventListener('click', shareInvite);
+  document.querySelector('#copyInviteLinkButton').addEventListener('click', copyInviteLink);
   document.querySelector('#copyInviteButton').addEventListener('click', shareInvite);
   document.querySelector('#chatForm').addEventListener('submit', sendMessage);
   document.querySelector('#chatInput').addEventListener('input', (event) => {
@@ -721,9 +755,7 @@ async function initialize() {
     setConnection('warning', 'status.connecting');
     const state = await pollState({ touch: true });
     if (state?.session.status === 'pending' && session.joinToken) {
-      document.querySelector('#qrSessionLabel').textContent = state.session.tripDisplayName || state.session.vehiclePlate;
-      await renderQr(inviteUrl(session.joinToken));
-      showView('qrView');
+      await showPendingTrip(state.session.tripDisplayName || state.session.vehiclePlate, session.joinToken);
     }
     return;
   }

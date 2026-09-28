@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=15';
+import { TOUR_CONFIG } from './config.js?v=16';
 
 const JOIN_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,96}$/u;
 
@@ -141,10 +141,11 @@ export function extractJoinToken(value) {
   try {
     const url = new URL(input, window.location.href);
     const queryToken = url.searchParams.get('join');
-    if (queryToken) return JOIN_TOKEN_PATTERN.test(queryToken) ? queryToken : null;
     const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
     const hashToken = hashParams.get('join');
-    return hashToken && JOIN_TOKEN_PATTERN.test(hashToken) ? hashToken : null;
+    if (queryToken && JOIN_TOKEN_PATTERN.test(queryToken)) return queryToken;
+    if (hashToken && JOIN_TOKEN_PATTERN.test(hashToken)) return hashToken;
+    return null;
   } catch {
     return null;
   }

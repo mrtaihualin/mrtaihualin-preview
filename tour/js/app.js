@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=16';
+import { TOUR_CONFIG } from './config.js?v=17';
 import {
   INTENTS,
   detectIntent,
@@ -9,7 +9,7 @@ import {
   setLocale,
   t,
   translateIntent
-} from './i18n.js?v=16';
+} from './i18n.js?v=17';
 import {
   TourApi,
   TourApiError,
@@ -18,17 +18,16 @@ import {
   inviteUrl,
   loadSession,
   saveSession
-} from './api.js?v=16';
-import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=16';
+} from './api.js?v=17';
+import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=17';
 
 const views = [...document.querySelectorAll('.view')];
 const connectionStatus = document.querySelector('#connectionStatus');
 const toast = document.querySelector('#toast');
 
 let session = loadSession();
-let preferredRole = loadPreferredRole();
-let preferredLocale = loadPreferredLocale(preferredRole);
-let selectedRole = session?.role || preferredRole;
+let preferredLocale = loadPreferredLocale();
+let selectedRole = session?.role || null;
 let selectedLocale = localeForRole(selectedRole, session?.locale || preferredLocale);
 let pendingJoin = null;
 let currentState = null;
@@ -36,35 +35,12 @@ let pollTimer = null;
 let qrScanner = null;
 let lastSeenMessageId = null;
 let initialMessagesRendered = false;
-let languageReturnView = null;
+let pendingBackGuard = false;
+let suppressNextPopstate = false;
 
-const LOCALE_LABELS = Object.freeze({
-  'zh-TW': '🇹🇼 繁體中文',
-  th: '🇹🇭 ภาษาไทย',
-  ja: '🇯🇵 日本語',
-  en: '🇬🇧 English'
-});
-
-function loadPreferredRole() {
-  const role = localStorage.getItem(TOUR_CONFIG.roleStorageKey);
-  return ['customer', 'driver'].includes(role) ? role : null;
-}
-
-function loadPreferredLocale(role) {
+function loadPreferredLocale() {
   const locale = localStorage.getItem(TOUR_CONFIG.localeStorageKey);
-  if (TOUR_CONFIG.userLocales.includes(locale)) return locale;
-  if (role === 'driver') return 'th';
-  return role === 'customer' ? 'zh-TW' : null;
-}
-
-function savePreferredRole(role, locale = null) {
-  if (!['customer', 'driver'].includes(role)) return null;
-  const normalizedLocale = localeForRole(role, locale);
-  localStorage.setItem(TOUR_CONFIG.roleStorageKey, role);
-  localStorage.setItem(TOUR_CONFIG.localeStorageKey, normalizedLocale);
-  preferredRole = role;
-  preferredLocale = normalizedLocale;
-  return { role, locale: normalizedLocale };
+  return TOUR_CONFIG.userLocales.includes(locale) ? locale : null;
 }
 
 function savePreferredLocale(locale) {
@@ -74,23 +50,8 @@ function savePreferredLocale(locale) {
   return locale;
 }
 
-function clearPreferredRole({ clearLocale = false } = {}) {
+function clearLegacyRolePreference() {
   localStorage.removeItem(TOUR_CONFIG.roleStorageKey);
-  if (clearLocale) localStorage.removeItem(TOUR_CONFIG.localeStorageKey);
-  preferredRole = null;
-  if (clearLocale) preferredLocale = null;
-}
-
-function updatePretripPreferences() {
-  const languageLabel = `${LOCALE_LABELS[selectedLocale] || '🌐'} ▾`;
-  document.querySelectorAll('[data-current-language]').forEach((button) => {
-    button.textContent = languageLabel;
-  });
-  const roleButton = document.querySelector('[data-current-role]');
-  if (roleButton && selectedRole) {
-    const icon = selectedRole === 'driver' ? '🚐' : '🧳';
-    roleButton.textContent = `${icon} ${t(`role.${selectedRole}Title`)} ▾`;
-  }
 }
 
 function showView(id) {
@@ -138,6 +99,7 @@ async function pollState({ touch = false, quiet = false } = {}) {
     if (state.session.status === 'paired') {
       if (session.joinToken) session = saveSession({ ...session, joinToken: null });
       renderTrip(state);
+      disarmPendingBackGuard();
     }
     if (state.session.status === 'ended') handleEndedSession();
     return state;
@@ -147,6 +109,7 @@ async function pollState({ touch = false, quiet = false } = {}) {
       clearSession();
       session = null;
       stopPolling();
+      disarmPendingBackGuard();
       showRoleHome();
       notify(humanError(error));
     } else if (!quiet) {
@@ -346,6 +309,7 @@ function handleEndedSession() {
   clearSession();
   session = null;
   stopPolling();
+  disarmPendingBackGuard();
   setConnection('warning', 'status.ended');
   showRoleHome();
   notify(t('trip.ended'));
@@ -385,6 +349,7 @@ async function showPendingTrip(label, joinToken) {
   frame.hidden = false;
   fallback.hidden = true;
   showView('qrView');
+  armPendingBackGuard();
   try {
     await renderQr(url);
   } catch {
@@ -473,18 +438,10 @@ function chooseLanguage(locale) {
   setLocale(locale);
   setConnection('online', 'status.ready');
   if (pendingJoin) {
-    savePreferredRole(selectedRole, selectedLocale);
     showPairingConfirmation();
     return;
   }
-  if (languageReturnView === 'create' && selectedRole) {
-    languageReturnView = null;
-    savePreferredRole(selectedRole, selectedLocale);
-    selectRole(selectedRole, { locale: selectedLocale, persist: false, focus: false });
-    return;
-  }
-  languageReturnView = null;
-  updatePretripPreferences();
+  selectedRole = null;
   showView('roleView');
 }
 
@@ -504,7 +461,7 @@ async function confirmPairing(event) {
       locale: selectedLocale,
       joinToken: null
     });
-    savePreferredRole(selectedRole, selectedLocale);
+    savePreferredLocale(selectedLocale);
     history.replaceState({}, '', new URL('./', window.location.href).pathname);
     pendingJoin = null;
     notify(t('pairing.paired'));
@@ -612,7 +569,7 @@ async function cancelPendingJoin() {
   qrScanner?.stop();
   history.replaceState({}, '', new URL('./', window.location.href).pathname);
   if (session) {
-    savePreferredRole(session.role, session.locale);
+    savePreferredLocale(session.locale);
     setLocale(localeForRole(session.role, session.locale));
     await pollState({ touch: true });
     return;
@@ -620,34 +577,76 @@ async function cancelPendingJoin() {
   showRoleHome();
 }
 
-function selectRole(role, { locale = null, persist = true, focus = true } = {}) {
+function armPendingBackGuard() {
+  if (pendingBackGuard) return;
+  history.replaceState({ tourView: 'before-pending' }, '', new URL('./', window.location.href).pathname);
+  history.pushState({ tourView: 'pending' }, '', new URL('./', window.location.href).pathname);
+  pendingBackGuard = true;
+}
+
+function disarmPendingBackGuard() {
+  if (!pendingBackGuard) return;
+  pendingBackGuard = false;
+  if (history.state?.tourView === 'pending') {
+    suppressNextPopstate = true;
+    history.back();
+  }
+}
+
+async function cancelCreatedPendingSession() {
+  if (!session?.joinToken) return;
+  const button = document.querySelector('#backFromQrButton');
+  const draftLabel = document.querySelector('#qrSessionLabel').textContent;
+  const role = session.role;
+  const locale = session.locale;
+  setBusy(button, true);
+  stopPolling();
+  try {
+    await TourApi.cancelPendingSession(session.sessionId, session.accessToken);
+    clearSession();
+    session = null;
+    currentState = null;
+    selectedRole = role;
+    selectedLocale = localeForRole(role, locale);
+    setLocale(selectedLocale);
+    selectRole(role, { locale: selectedLocale, focus: false, label: draftLabel });
+    disarmPendingBackGuard();
+  } catch (error) {
+    if (error.code === 'TOUR_SESSION_ALREADY_PAIRED') {
+      notify(t('pairing.paired'));
+      await pollState({ touch: true });
+      disarmPendingBackGuard();
+    } else {
+      notify(humanError(error));
+      if (session) pollTimer = window.setTimeout(() => pollState({ quiet: true }), TOUR_CONFIG.pollIntervalMs);
+    }
+  } finally {
+    setBusy(button, false);
+  }
+}
+
+function selectRole(role, { locale = null, focus = true, label = '' } = {}) {
   if (!['customer', 'driver'].includes(role)) return;
   selectedRole = role;
   selectedLocale = localeForRole(role, locale || preferredLocale);
-  if (persist) savePreferredRole(role, selectedLocale);
+  savePreferredLocale(selectedLocale);
   setLocale(selectedLocale);
-  updatePretripPreferences();
   document.querySelector('#createEyebrow').textContent = t(`create.${role}Eyebrow`);
   document.querySelector('#createTitle').textContent = t(`create.${role}Title`);
   document.querySelector('#tripLabelText').textContent = t(`create.${role}Label`);
   document.querySelector('#tripLabelHint').textContent = t(`create.${role}Hint`);
   document.querySelector('#createButton').textContent = t(`create.${role}Button`);
   document.querySelector('#tripLabel').maxLength = role === 'driver' ? 24 : 80;
-  document.querySelector('#tripLabel').value = '';
+  document.querySelector('#tripLabel').value = label;
   showView('createView');
   if (focus) document.querySelector('#tripLabel').focus();
 }
 
 function showRoleHome({ focus = false } = {}) {
-  if (preferredRole) {
-    selectRole(preferredRole, { locale: preferredLocale, persist: false, focus });
-    return;
-  }
   if (preferredLocale) {
     selectedRole = null;
     selectedLocale = preferredLocale;
     setLocale(selectedLocale);
-    updatePretripPreferences();
     showView('roleView');
     return;
   }
@@ -665,18 +664,14 @@ function showLanguagePicker({ preserveJoinRole = false } = {}) {
   showView('startView');
 }
 
-function changeRole() {
-  clearPreferredRole();
+function backToRole() {
   selectedRole = null;
   setLocale(preferredLocale);
   showView('roleView');
 }
 
-function changeLanguage(returnView = 'role') {
-  languageReturnView = returnView;
-  localStorage.removeItem(TOUR_CONFIG.localeStorageKey);
-  preferredLocale = null;
-  showLanguagePicker({ preserveJoinRole: returnView === 'create' });
+function backToLanguage() {
+  showLanguagePicker();
 }
 
 function wireEvents() {
@@ -692,19 +687,17 @@ function wireEvents() {
       showRoleHome();
     });
   });
-  document.querySelector('#changeRoleButton').addEventListener('click', changeRole);
-  document.querySelector('#changeLanguageButton').addEventListener('click', () => changeLanguage('role'));
-  document.querySelector('#changeLanguageFromCreateButton').addEventListener('click', () => changeLanguage('create'));
+  document.querySelector('#backToLanguageButton').addEventListener('click', backToLanguage);
+  document.querySelector('#backToRoleButton').addEventListener('click', backToRole);
+  document.querySelector('#backFromQrButton').addEventListener('click', cancelCreatedPendingSession);
   document.querySelector('#createForm').addEventListener('submit', createTrip);
   document.querySelector('#openScannerButton').addEventListener('click', startScanner);
-  document.querySelector('#scanFromRoleButton').addEventListener('click', startScanner);
   document.querySelector('#manualJoinForm').addEventListener('submit', (event) => {
     event.preventDefault();
     openJoinValue(document.querySelector('#manualJoinInput').value);
   });
   document.querySelector('#confirmForm').addEventListener('submit', confirmPairing);
   document.querySelector('#backFromConfirmButton').addEventListener('click', cancelPendingJoin);
-  document.querySelector('#rejectPairButton').addEventListener('click', cancelPendingJoin);
   document.querySelector('#shareLinkButton').addEventListener('click', shareInvite);
   document.querySelector('#copyInviteLinkButton').addEventListener('click', copyInviteLink);
   document.querySelector('#copyInviteButton').addEventListener('click', shareInvite);
@@ -728,12 +721,23 @@ function wireEvents() {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && session) pollState({ touch: true, quiet: true });
   });
+  window.addEventListener('popstate', () => {
+    if (suppressNextPopstate) {
+      suppressNextPopstate = false;
+      return;
+    }
+    if (pendingBackGuard && !document.querySelector('#qrView').classList.contains('hidden')) {
+      history.pushState({ tourView: 'pending' }, '', new URL('./', window.location.href).pathname);
+      cancelCreatedPendingSession();
+    }
+  });
 }
 
 async function initialize() {
   registerTourServiceWorker();
+  clearLegacyRolePreference();
   wireEvents();
-  if (session) savePreferredRole(session.role, session.locale);
+  if (session) savePreferredLocale(session.locale);
   if (session) setLocale(localeForRole(session.role, session.locale));
   else if (preferredLocale) setLocale(preferredLocale);
   initInstallExperience({

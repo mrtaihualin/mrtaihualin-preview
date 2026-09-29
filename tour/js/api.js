@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=16';
+import { TOUR_CONFIG } from './config.js?v=17';
 
 const JOIN_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,96}$/u;
 
@@ -44,6 +44,9 @@ export const TourApi = Object.freeze({
   },
   confirmSession(joinToken, role, label) {
     return rpc('confirm_session', { p_join_token: joinToken, p_role: role, p_label: label });
+  },
+  cancelPendingSession(sessionId, accessToken) {
+    return rpc('cancel_pending_session', { p_session_id: sessionId, p_access_token: accessToken });
   },
   getState(sessionId, accessToken, touch = false) {
     return rpc('get_state', {

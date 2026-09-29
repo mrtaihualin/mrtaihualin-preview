@@ -8,6 +8,6 @@
 - Flight status is intentionally hidden because no reliable server-side flight provider is configured.
 - MVP has one active session per browser profile and no persistent user identity.
 - The customer label is only a temporary display or group name for the trip; it is not verified and does not need to be a real name.
-- The remembered Customer/Driver role and selected language are local to one browser profile. They are convenience preferences, not identity verification, and can be changed from the role page.
+- The selected language is remembered locally, but Customer/Driver is intentionally chosen again for every new trip. Neither is identity verification.
 - The PWA caches only the same-origin app shell. Supabase actions, QR/Leaflet CDN modules, Google Maps or OpenStreetMap tiles, GPS sharing, and live updates still require internet access.
 - Appointment reschedule, cancellation, history, route planning, accounts, teams, payments, and LINE integration are intentionally not implemented.

@@ -1,21 +1,21 @@
-const CACHE_NAME = 'tour-shell-v16';
+const CACHE_NAME = 'tour-shell-v17';
 const APP_SHELL = [
   './',
   './index.html',
   './map.html',
   './manifest.webmanifest',
-  './assets/styles.css?v=16',
+  './assets/styles.css?v=17',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/icon-maskable-512.png',
   './assets/icons/apple-touch-icon.png',
-  './js/api.js?v=16',
-  './js/app.js?v=16',
-  './js/config.js?v=16',
-  './js/i18n.js?v=16',
-  './js/map.js?v=16',
-  './js/pwa.js?v=16',
-  './js/runtime-config.js?v=16'
+  './js/api.js?v=17',
+  './js/app.js?v=17',
+  './js/config.js?v=17',
+  './js/i18n.js?v=17',
+  './js/map.js?v=17',
+  './js/pwa.js?v=17',
+  './js/runtime-config.js?v=17'
 ];
 
 self.addEventListener('install', (event) => {

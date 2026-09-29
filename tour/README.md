@@ -10,7 +10,7 @@ Standalone mobile-first module for temporary communication between a foreign tou
 - Data access: token-gated Postgres RPC functions; underlying tables are private
 - Transport: 2.5-second polling (no P2P and no localStorage data cache)
 - Session recovery: localStorage keeps only the session id, participant role, UI locale, and unguessable participant token
-- Language-first onboarding: each device chooses Traditional Chinese, Thai, Japanese, or English, then chooses Traveler or Driver; both choices are remembered locally
+- Language-first onboarding: each device chooses Traditional Chinese, Thai, Japanese, or English; the language is remembered, while Traveler or Driver is chosen again for each new trip
 - Single-language UI: after language selection, every visible app screen uses only that device's selected language, independent of the other person's choice
 - Pairing identity: the creator enters their own customer display name or vehicle plate; the scanner enters the missing value before confirming, so the paired trip shows both
 - Session lifetime: expires after seven days without explicit foreground use or a meaningful write
@@ -82,6 +82,7 @@ The API test creates disposable sessions, exercises both creator directions, and
 - QR join tokens stop working immediately after pairing.
 - Opening a scanned invite takes priority over a remembered or stale browser session; the prior session is kept until the user confirms the new pairing.
 - The scanner is always assigned the opposite role from the creator. Going back before confirmation cancels only the preview and restores the prior browser session when one exists.
+- Going back from the creator's QR screen atomically cancels only an unpaired session, then restores the entered name or vehicle plate for editing. It cannot end a session that has already paired.
 - Invite URLs carry the join token in both the query string and fragment so mobile browser/PWA handoffs have a fallback without changing backend authorization.
 - The creator always receives a visible, copyable invite link; if QR generation fails to load, the link remains available instead of creating another trip.
 - A QR join always infers the opposite role from the creator. A fresh device chooses its language before confirming; it does not need to choose the inferred role again.

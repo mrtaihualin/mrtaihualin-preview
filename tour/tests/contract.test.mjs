@@ -37,10 +37,10 @@ test('PWA is scoped to the standalone tour module', async () => {
   assert(manifest.icons.some((icon) => icon.sizes === '512x512' && icon.purpose.includes('maskable')));
   assert.match(index, /rel="manifest" href="\.\/manifest\.webmanifest"/);
   assert.match(map, /rel="manifest" href="\.\/manifest\.webmanifest"/);
-  assert.match(index, /src="\.\/js\/app\.js\?v=16"/);
-  assert.match(map, /src="\.\/js\/map\.js\?v=16"/);
-  assert.match(app, /from '\.\/config\.js\?v=16'/);
-  assert.match(mapScript, /from '\.\/config\.js\?v=16'/);
+  assert.match(index, /src="\.\/js\/app\.js\?v=17"/);
+  assert.match(map, /src="\.\/js\/map\.js\?v=17"/);
+  assert.match(app, /from '\.\/config\.js\?v=17'/);
+  assert.match(mapScript, /from '\.\/config\.js\?v=17'/);
   assert.match(app, /registerTourServiceWorker/);
   assert.match(mapScript, /registerTourServiceWorker/);
   assert.match(pwa, /navigator\.serviceWorker\.register\('\.\/sw\.js'/);
@@ -73,7 +73,7 @@ test('session recovery stores credentials only, never backend data', async () =>
   assert.doesNotMatch(api, /localStorage\.setItem[^\n]+locations/);
 });
 
-test('language is chosen before role, both choices are remembered, and QR joins infer the opposite role', async () => {
+test('language is remembered, role is chosen for each trip, and QR joins infer the opposite role', async () => {
   const config = await text('js/config.js');
   const index = await text('index.html');
   const app = await text('js/app.js');
@@ -82,10 +82,12 @@ test('language is chosen before role, both choices are remembered, and QR joins 
   assert.match(config, /roleStorageKey: 'tour\.v1\.role'/);
   assert.match(config, /localeStorageKey: 'tour\.v1\.locale'/);
   assert.match(config, /userLocales: \['zh-TW', 'th', 'ja', 'en'\]/);
-  assert.match(index, /id="changeRoleButton"/);
-  assert.match(index, /id="changeLanguageButton"/);
-  assert.match(index, /id="changeLanguageFromCreateButton"/);
-  assert.match(index, /id="scanFromRoleButton"/);
+  assert.match(index, /id="backToLanguageButton"/);
+  assert.match(index, /id="backToRoleButton"/);
+  assert.match(index, /id="backFromQrButton"/);
+  assert.match(index, /id="openScannerButton"/);
+  assert.doesNotMatch(index, /id="scanFromRoleButton"/);
+  assert.doesNotMatch(index, /id="rejectPairButton"/);
   for (const locale of ['zh-TW', 'th', 'ja', 'en']) {
     assert.match(index, new RegExp(`data-locale-choice="${locale}"`));
   }
@@ -97,18 +99,16 @@ test('language is chosen before role, both choices are remembered, and QR joins 
   assert.match(index, /id="tripCustomerName"/);
   assert.match(index, /id="tripVehiclePlate"/);
   assert.doesNotMatch(index, /data-customer-locale|id="languageView"/);
-  assert.match(app, /localStorage\.setItem\(TOUR_CONFIG\.roleStorageKey, role\)/);
-  assert.match(app, /localStorage\.setItem\(TOUR_CONFIG\.localeStorageKey, normalizedLocale\)/);
+  assert.doesNotMatch(app, /localStorage\.setItem\(TOUR_CONFIG\.roleStorageKey/);
+  assert.match(app, /localStorage\.setItem\(TOUR_CONFIG\.localeStorageKey, locale\)/);
   assert.match(app, /function chooseLanguage\(locale\)/);
-  assert.match(app, /languageReturnView === 'create'/);
-  assert.match(app, /showLanguagePicker\(\{ preserveJoinRole: returnView === 'create' \}\)/);
   assert.match(app, /if \(!preferredLocale\)/);
   assert.match(app, /localStorage\.removeItem\(TOUR_CONFIG\.roleStorageKey\)/);
-  assert.match(app, /if \(clearLocale\) localStorage\.removeItem\(TOUR_CONFIG\.localeStorageKey\)/);
   assert.match(app, /selectedRole = preview\.creatorRole === 'driver' \? 'customer' : 'driver'/);
   assert.match(app, /TourApi\.confirmSession\(pendingJoin\.joinToken, selectedRole, label\)/);
   assert.match(api, /p_label: label/);
   assert.match(app, /showRoleHome\(\)/);
+  assert.match(app, /if \(preferredLocale\)[\s\S]+showView\('roleView'\)/);
   assert.match(api, /locale: TOUR_CONFIG\.userLocales\.includes\(session\.locale\) \? session\.locale/);
   assert.match(api, /locale: TOUR_CONFIG\.userLocales\.includes\(stored\.locale\) \? stored\.locale/);
 });
@@ -127,6 +127,11 @@ test('scanned invites win over remembered sessions and survive URL handoff varia
   assert.match(api, /url\.hash = new URLSearchParams\(\{ join: joinToken \}\)\.toString\(\)/);
   assert.match(app, /async function cancelPendingJoin\(\)/);
   assert.match(app, /addEventListener\('click', cancelPendingJoin\)/);
+  assert.match(app, /async function cancelCreatedPendingSession\(\)/);
+  assert.match(app, /TourApi\.cancelPendingSession\(session\.sessionId, session\.accessToken\)/);
+  assert.match(app, /label: draftLabel/);
+  assert.match(app, /window\.addEventListener\('popstate'/);
+  assert.match(api, /cancelPendingSession\(sessionId, accessToken\)/);
   assert.match(app, /async function showPendingTrip\(label, joinToken\)/);
   assert.match(app, /frame\.hidden = true/);
   assert.match(index, /id="inviteLinkValue"/);
@@ -226,4 +231,13 @@ test('pairing migration requires the scanner to add the missing customer name or
   assert.match(sql, /trip_display_name = case when p_role = 'customer'/);
   assert.match(sql, /vehicle_plate = case when p_role = 'driver'/);
   assert.match(sql, /grant execute on function public\.tour_v1_confirm_session\(text, text, text\)/);
+});
+
+test('pending-session cancellation is atomic and cannot end an already-paired trip', async () => {
+  const migration = await text('supabase/migrations/20260929011237_cancel_pending_session.sql');
+  assert.match(migration, /create function public\.tour_v1_cancel_pending_session\(p_session_id uuid, p_access_token text\)/);
+  assert.match(migration, /for update/);
+  assert.match(migration, /if v_status <> 'pending'/);
+  assert.match(migration, /TOUR_SESSION_ALREADY_PAIRED/);
+  assert.match(migration, /grant execute on function public\.tour_v1_cancel_pending_session\(uuid, text\) to anon, authenticated/);
 });

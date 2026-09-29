@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=16';
+import { TOUR_CONFIG } from './config.js?v=17';
 
 export const UI = Object.freeze({
   'zh-TW': {
@@ -19,7 +19,7 @@ export const UI = Object.freeze({
     'start.scan': '掃描對方的 QR Code',
     'language.change': '切換語言',
     'role.title': '選擇身分',
-    'role.note': '選擇後會記住，下次可直接開啟。',
+    'role.note': '請選擇你在這趟旅程中的身分。',
     'role.customerTitle': '我是旅客',
     'role.customerHint': '建立旅程名稱，讓司機掃描',
     'role.driverTitle': '我是司機',
@@ -50,6 +50,7 @@ export const UI = Object.freeze({
     'pairing.invalidInvite': '此 QR Code 無效、已過期或已使用。請返回後重新掃描。',
     'pairing.shareLink': '分享連結',
     'pairing.autoOpen': '對方確認後，這裡會自動進入旅程。',
+    'pairing.editDetails': '返回修改資料',
     'pairing.confirmEyebrow': '請確認這是正確的旅程',
     'pairing.confirm': '確認並加入',
     'pairing.notMine': '這不是我的旅程',
@@ -145,7 +146,7 @@ export const UI = Object.freeze({
     'start.scan': 'สแกน QR Code ของอีกฝ่าย',
     'language.change': 'เปลี่ยนภาษา',
     'role.title': 'เลือกบทบาท',
-    'role.note': 'ระบบจะจำตัวเลือกนี้ไว้ เพื่อให้ครั้งต่อไปเปิดใช้งานได้ทันที',
+    'role.note': 'เลือกบทบาทของคุณสำหรับทริปนี้',
     'role.customerTitle': 'ฉันคือนักท่องเที่ยว',
     'role.customerHint': 'ตั้งชื่อทริปแล้วให้คนขับสแกน',
     'role.driverTitle': 'ฉันคือคนขับ',
@@ -176,6 +177,7 @@ export const UI = Object.freeze({
     'pairing.invalidInvite': 'QR นี้ไม่ถูกต้อง หมดอายุ หรือถูกใช้แล้ว กรุณาย้อนกลับแล้วสแกนใหม่',
     'pairing.shareLink': 'แชร์ลิงก์',
     'pairing.autoOpen': 'เมื่ออีกฝ่ายยืนยัน หน้านี้จะเข้าสู่ทริปโดยอัตโนมัติ',
+    'pairing.editDetails': 'กลับไปแก้ข้อมูล',
     'pairing.confirmEyebrow': 'ตรวจสอบว่าเป็นทริปที่ถูกต้อง',
     'pairing.confirm': 'ยืนยันและเข้าร่วม',
     'pairing.notMine': 'นี่ไม่ใช่ทริปของฉัน',
@@ -271,7 +273,7 @@ export const UI = Object.freeze({
     'start.scan': '相手のQRコードをスキャン',
     'language.change': '言語を変更',
     'role.title': '利用者を選択',
-    'role.note': '選択内容は保存され、次回からすぐに開けます。',
+    'role.note': 'この旅行での役割を選んでください。',
     'role.customerTitle': '旅行者です',
     'role.customerHint': '旅行名を作成し、ドライバーにスキャンしてもらう',
     'role.driverTitle': 'ドライバーです',
@@ -302,6 +304,7 @@ export const UI = Object.freeze({
     'pairing.invalidInvite': 'このQRコードは無効、期限切れ、または使用済みです。戻って再度スキャンしてください。',
     'pairing.shareLink': 'リンクを共有',
     'pairing.autoOpen': '相手が確認すると、自動的に旅行画面へ移動します。',
+    'pairing.editDetails': '入力内容を修正',
     'pairing.confirmEyebrow': '正しい旅行か確認してください',
     'pairing.confirm': '確認して参加',
     'pairing.notMine': 'この旅行ではありません',
@@ -397,7 +400,7 @@ export const UI = Object.freeze({
     'start.scan': "Scan the other person's QR code",
     'language.change': 'Change language',
     'role.title': 'Choose your role',
-    'role.note': 'Your choice is remembered so you can open it directly next time.',
+    'role.note': 'Choose your role for this trip.',
     'role.customerTitle': 'I am a traveler',
     'role.customerHint': 'Create a trip name and let the driver scan',
     'role.driverTitle': 'I am a driver',
@@ -428,6 +431,7 @@ export const UI = Object.freeze({
     'pairing.invalidInvite': 'This QR code is invalid, expired, or already used. Go back and scan again.',
     'pairing.shareLink': 'Share link',
     'pairing.autoOpen': 'This page will open the trip automatically after the other person confirms.',
+    'pairing.editDetails': 'Back to edit details',
     'pairing.confirmEyebrow': 'Check that this is the correct trip',
     'pairing.confirm': 'Confirm and join',
     'pairing.notMine': 'This is not my trip',

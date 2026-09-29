@@ -64,6 +64,28 @@ async function createAndPair(creatorRole, label) {
 const customerFirst = await createAndPair('customer', `E2E Customer ${Date.now()}`);
 const driverFirst = await createAndPair('driver', `TEST-${String(Date.now()).slice(-6)}`);
 
+const pendingToCancel = await rpc('create_session', {
+  p_creator_role: 'customer',
+  p_label: `E2E Cancel ${Date.now()}`
+});
+await rpc('cancel_pending_session', {
+  p_session_id: pendingToCancel.sessionId,
+  p_access_token: pendingToCancel.accessToken
+});
+await rpcMustFail('preview_session', {
+  p_join_token: pendingToCancel.joinToken
+}, 'TOUR_JOIN_INVALID');
+await rpcMustFail('get_state', {
+  p_session_id: pendingToCancel.sessionId,
+  p_access_token: pendingToCancel.accessToken,
+  p_touch: false
+}, 'TOUR_SESSION_ENDED');
+
+await rpcMustFail('cancel_pending_session', {
+  p_session_id: customerFirst.sessionId,
+  p_access_token: customerFirst.customer
+}, 'TOUR_SESSION_ALREADY_PAIRED');
+
 await rpcMustFail('get_state', {
   p_session_id: customerFirst.sessionId,
   p_access_token: 'invalid-token',

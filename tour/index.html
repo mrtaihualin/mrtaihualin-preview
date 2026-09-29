@@ -13,14 +13,14 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./assets/styles.css?v=16">
+  <link rel="stylesheet" href="./assets/styles.css?v=17">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="./" aria-label="Tour home" data-i18n-aria-label="app.home">
+    <div class="brand">
       <span class="brand-mark" aria-hidden="true">T</span>
       <span id="brandName" data-i18n="app.name">Tour</span>
-    </a>
+    </div>
     <div class="status-pill" id="connectionStatus" aria-live="polite">
       <span class="status-dot"></span>
       <span data-i18n="status.ready">🌐</span>
@@ -42,26 +42,15 @@
     </section>
 
     <section class="view hidden" id="roleView">
+      <button class="back-link" id="backToLanguageButton" type="button">← <span data-i18n="language.change">切換語言</span></button>
       <div class="hero-card">
         <p class="eyebrow" data-i18n="start.eyebrow">不需登入・不需下載</p>
         <h1 data-i18n="start.title">掃描、確認、開始聯絡</h1>
         <p class="hero-copy" data-i18n="start.subtitle">為旅客與泰國司機建立臨時且私密的旅程空間。</p>
       </div>
 
-      <button class="install-card hidden" id="installAppButton" type="button">
-        <span class="install-icon" aria-hidden="true">↧</span>
-        <span>
-          <strong data-i18n="pwa.install">加到手機主畫面</strong>
-          <small data-i18n="pwa.installHint">下次像 App 一樣直接開啟</small>
-        </span>
-        <span aria-hidden="true">›</span>
-      </button>
-
-      <div class="pretrip-preferences single">
-        <button class="preference-button" id="changeLanguageButton" type="button" data-current-language>🇹🇼 繁體中文 ▾</button>
-      </div>
       <h2 class="role-title" data-i18n="role.title">選擇身分</h2>
-      <p class="role-note" data-i18n="role.note">選擇後會記住，下次可直接開啟。</p>
+      <p class="role-note" data-i18n="role.note">請選擇你在這趟旅程中的身分。</p>
 
       <div class="role-grid" aria-label="Choose role" data-i18n-aria-label="role.title">
         <button class="role-card" type="button" data-role-choice="customer">
@@ -77,13 +66,19 @@
       </div>
 
       <button class="secondary full" id="openScannerButton" type="button" data-i18n="start.scan">掃描對方的 QR Code</button>
+
+      <button class="install-card hidden" id="installAppButton" type="button">
+        <span class="install-icon" aria-hidden="true">↧</span>
+        <span>
+          <strong data-i18n="pwa.install">加到手機主畫面</strong>
+          <small data-i18n="pwa.installHint">下次像 App 一樣直接開啟</small>
+        </span>
+        <span aria-hidden="true">›</span>
+      </button>
     </section>
 
     <section class="view hidden" id="createView">
-      <div class="pretrip-preferences">
-        <button class="preference-button" id="changeLanguageFromCreateButton" type="button" data-current-language>🇹🇼 繁體中文 ▾</button>
-        <button class="preference-button" id="changeRoleButton" type="button" data-current-role>🧳 我是旅客 ▾</button>
-      </div>
+      <button class="back-link" id="backToRoleButton" type="button">← <span data-i18n="common.back">返回</span></button>
       <div class="panel">
         <p class="eyebrow" id="createEyebrow"></p>
         <h1 id="createTitle"></h1>
@@ -93,14 +88,11 @@
           <p class="field-hint" id="tripLabelHint"></p>
           <button class="primary full" id="createButton" type="submit"></button>
         </form>
-        <div class="role-scan-action">
-          <span data-i18n="role.orJoin">或加入對方建立的旅程</span>
-          <button class="secondary full" id="scanFromRoleButton" type="button" data-i18n="start.scan">掃描對方的 QR Code</button>
-        </div>
       </div>
     </section>
 
     <section class="view hidden" id="qrView">
+      <button class="back-link" id="backFromQrButton" type="button">← <span data-i18n="pairing.editDetails">返回修改資料</span></button>
       <div class="panel center">
         <p class="eyebrow" data-i18n="pairing.waiting">等待對方加入</p>
         <h1 data-i18n="pairing.showQr">請讓對方掃描</h1>
@@ -149,7 +141,6 @@
           <p class="field-hint" id="confirmOwnLabelHint"></p>
           <button class="primary full" id="confirmPairButton" type="submit" data-i18n="pairing.confirm">確認並加入</button>
         </form>
-        <button class="text-button" id="rejectPairButton" type="button" data-i18n="pairing.notMine">這不是我的旅程</button>
       </div>
     </section>
 
@@ -249,6 +240,6 @@
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   </main>
 
-  <script type="module" src="./js/app.js?v=16"></script>
+  <script type="module" src="./js/app.js?v=17"></script>
 </body>
 </html>

@@ -10,19 +10,22 @@ Use Phone A and Phone B on different networks. Use a private/incognito browser p
 4. Reopen after a refresh and verify an active session still recovers normally.
 5. Temporarily disconnect the network and verify the cached start screen reopens; verify live actions clearly fail rather than showing stale backend data.
 
-## Language and remembered role
+## Language and role flow
 
 1. On a fresh browser verify the first screen offers `繁體中文`, `ภาษาไทย`, `日本語`, and `English`.
 2. Choose each language in a fresh profile and verify the next role screen contains only that selected language.
 3. Choose Traveler or Driver and verify the create/join screen stays in the selected language.
-4. Close and reopen `/tour/`; verify the remembered role opens directly in the same language.
-5. Tap Change role and verify the role screen stays in the same language.
-6. Tap Change language, choose another language, and verify the role and create/join screens switch fully to it.
+4. Before creating a trip, close and reopen `/tour/`; verify the remembered language opens the role screen, not the create screen.
+5. Choose a role, tap Back, and verify the role screen stays in the remembered language.
+6. From the role screen tap Change language, choose another language, and verify the role and create screens switch fully to it.
 7. Create a trip and open its QR on a fresh second phone; verify that phone chooses its own language and is assigned the opposite role automatically.
 8. Confirm, refresh, and verify the selected language and inferred role return without another question.
-9. End the trip and verify each phone returns to its own remembered role-and-language page.
+9. End the trip and verify each phone returns to the role screen in its remembered language.
 10. On the scanning phone, first leave an old pending or expired trip in the browser, then scan a new QR; verify the new trip confirmation opens instead of the create-trip screen.
 11. From the confirmation screen tap Back; verify no pairing occurs, the creator remains waiting, and the scanner's prior session is restored when one existed.
+12. From the creator QR screen tap Back to edit; verify the pending session is ended, the prior name/plate is preserved in the form, and the old QR can no longer be previewed.
+13. Repeat step 12 with the browser Back control on mobile Safari/Chrome and verify it follows the same cancellation path instead of returning to the QR screen.
+14. Pair just before the creator taps Back and verify the cancellation endpoint refuses to end the newly paired trip.
 
 ## Customer creates
 

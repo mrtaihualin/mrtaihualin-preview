@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=17';
+import { TOUR_CONFIG } from './config.js?v=18';
 import {
   INTENTS,
   detectIntent,
@@ -9,7 +9,7 @@ import {
   setLocale,
   t,
   translateIntent
-} from './i18n.js?v=17';
+} from './i18n.js?v=18';
 import {
   TourApi,
   TourApiError,
@@ -18,8 +18,9 @@ import {
   inviteUrl,
   loadSession,
   saveSession
-} from './api.js?v=17';
-import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=17';
+} from './api.js?v=18';
+import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=18';
+import { isPendingHistoryEntry, restoreStoredSessionView } from './session-flow.js?v=18';
 
 const views = [...document.querySelectorAll('.view')];
 const connectionStatus = document.querySelector('#connectionStatus');
@@ -571,7 +572,8 @@ async function cancelPendingJoin() {
   if (session) {
     savePreferredLocale(session.locale);
     setLocale(localeForRole(session.role, session.locale));
-    await pollState({ touch: true });
+    const state = await pollState({ touch: true });
+    await restoreStoredSessionView(state, session, showPendingTrip);
     return;
   }
   showRoleHome();
@@ -579,6 +581,10 @@ async function cancelPendingJoin() {
 
 function armPendingBackGuard() {
   if (pendingBackGuard) return;
+  if (isPendingHistoryEntry(history.state)) {
+    pendingBackGuard = true;
+    return;
+  }
   history.replaceState({ tourView: 'before-pending' }, '', new URL('./', window.location.href).pathname);
   history.pushState({ tourView: 'pending' }, '', new URL('./', window.location.href).pathname);
   pendingBackGuard = true;
@@ -758,9 +764,7 @@ async function initialize() {
   if (session) {
     setConnection('warning', 'status.connecting');
     const state = await pollState({ touch: true });
-    if (state?.session.status === 'pending' && session.joinToken) {
-      await showPendingTrip(state.session.tripDisplayName || state.session.vehiclePlate, session.joinToken);
-    }
+    await restoreStoredSessionView(state, session, showPendingTrip);
     return;
   }
 

@@ -37,10 +37,10 @@ test('PWA is scoped to the standalone tour module', async () => {
   assert(manifest.icons.some((icon) => icon.sizes === '512x512' && icon.purpose.includes('maskable')));
   assert.match(index, /rel="manifest" href="\.\/manifest\.webmanifest"/);
   assert.match(map, /rel="manifest" href="\.\/manifest\.webmanifest"/);
-  assert.match(index, /src="\.\/js\/app\.js\?v=17"/);
-  assert.match(map, /src="\.\/js\/map\.js\?v=17"/);
-  assert.match(app, /from '\.\/config\.js\?v=17'/);
-  assert.match(mapScript, /from '\.\/config\.js\?v=17'/);
+  assert.match(index, /src="\.\/js\/app\.js\?v=18"/);
+  assert.match(map, /src="\.\/js\/map\.js\?v=18"/);
+  assert.match(app, /from '\.\/config\.js\?v=18'/);
+  assert.match(mapScript, /from '\.\/config\.js\?v=18'/);
   assert.match(app, /registerTourServiceWorker/);
   assert.match(mapScript, /registerTourServiceWorker/);
   assert.match(pwa, /navigator\.serviceWorker\.register\('\.\/sw\.js'/);
@@ -133,8 +133,39 @@ test('scanned invites win over remembered sessions and survive URL handoff varia
   assert.match(app, /window\.addEventListener\('popstate'/);
   assert.match(api, /cancelPendingSession\(sessionId, accessToken\)/);
   assert.match(app, /async function showPendingTrip\(label, joinToken\)/);
+  assert.match(app, /restoreStoredSessionView\(state, session, showPendingTrip\)/);
+  assert.match(app, /isPendingHistoryEntry\(history\.state\)/);
   assert.match(app, /frame\.hidden = true/);
   assert.match(index, /id="inviteLinkValue"/);
+});
+
+test('back from a scanned invite restores a prior pending creator QR', async () => {
+  const { restoreStoredSessionView } = await import('../js/session-flow.js?restore-pending-test');
+  const calls = [];
+  const state = {
+    session: {
+      status: 'pending',
+      tripDisplayName: 'Group A',
+      vehiclePlate: null
+    }
+  };
+  const storedSession = { joinToken: 'prior-creator-token' };
+
+  const result = await restoreStoredSessionView(
+    state,
+    storedSession,
+    async (...args) => calls.push(args)
+  );
+
+  assert.equal(result, 'pending');
+  assert.deepEqual(calls, [['Group A', 'prior-creator-token']]);
+});
+
+test('pending QR history guard is reused after refresh instead of adding another entry', async () => {
+  const { isPendingHistoryEntry } = await import('../js/session-flow.js?history-guard-test');
+  assert.equal(isPendingHistoryEntry({ tourView: 'pending' }), true);
+  assert.equal(isPendingHistoryEntry({ tourView: 'before-pending' }), false);
+  assert.equal(isPendingHistoryEntry(null), false);
 });
 
 test('join token parser accepts raw, query, and hash invite values', async () => {

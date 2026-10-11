@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=19';
+import { TOUR_CONFIG } from './config.js?v=20';
 
 export const UI = Object.freeze({
   'zh-TW': {
@@ -82,6 +82,9 @@ export const UI = Object.freeze({
     'airport.emptyCustomer': '輸入抵達曼谷蘇凡納布機場的航班號碼。',
     'airport.emptyDriver': '等待旅客輸入航班號碼。',
     'airport.flightNumber': '航班號碼',
+    'airport.editFlight': '修改航班',
+    'airport.cancelEditFlight': '取消修改',
+    'airport.changeFlightConfirm': '修改航班將重設行李、到達出口和司機接送狀態。確定要修改嗎？',
     'airport.checkFlight': '儲存並查詢',
     'airport.bkkOnly': '目前僅支援抵達曼谷蘇凡納布機場（BKK）的航班。',
     'airport.flightStatus': '航班狀態',
@@ -264,6 +267,9 @@ export const UI = Object.freeze({
     'airport.emptyCustomer': 'กรอกเที่ยวบินที่เดินทางมาถึงสนามบินสุวรรณภูมิ',
     'airport.emptyDriver': 'รอนักท่องเที่ยวกรอกหมายเลขเที่ยวบิน',
     'airport.flightNumber': 'หมายเลขเที่ยวบิน',
+    'airport.editFlight': 'แก้เที่ยวบิน',
+    'airport.cancelEditFlight': 'ยกเลิกแก้ไข',
+    'airport.changeFlightConfirm': 'การเปลี่ยนเที่ยวบินจะรีเซ็ตสถานะกระเป๋า ถึงประตูทางออก และสถานะรับรถ ยืนยันแก้ไขหรือไม่',
     'airport.checkFlight': 'บันทึกและเช็กเที่ยวบิน',
     'airport.bkkOnly': 'ตอนนี้รองรับเฉพาะเที่ยวบินที่มาถึงสนามบินสุวรรณภูมิ (BKK)',
     'airport.flightStatus': 'สถานะเที่ยวบิน',
@@ -446,6 +452,9 @@ export const UI = Object.freeze({
     'airport.emptyCustomer': 'スワンナプーム空港に到着する便名を入力してください。',
     'airport.emptyDriver': '旅行者が便名を入力するのを待っています。',
     'airport.flightNumber': '便名',
+    'airport.editFlight': '便を変更',
+    'airport.cancelEditFlight': '変更をキャンセル',
+    'airport.changeFlightConfirm': '便を変更すると、荷物受取、出口到着、ドライバーの送迎状況がリセットされます。変更しますか？',
     'airport.checkFlight': '保存して確認',
     'airport.bkkOnly': '現在はスワンナプーム空港（BKK）到着便のみ対応しています。',
     'airport.flightStatus': '運航状況',
@@ -628,6 +637,9 @@ export const UI = Object.freeze({
     'airport.emptyCustomer': 'Enter the flight arriving at Suvarnabhumi Airport.',
     'airport.emptyDriver': 'Waiting for the traveler to enter a flight number.',
     'airport.flightNumber': 'Flight number',
+    'airport.editFlight': 'Edit flight',
+    'airport.cancelEditFlight': 'Cancel editing',
+    'airport.changeFlightConfirm': 'Changing the flight resets baggage, pickup-exit, and driver pickup statuses. Change it?',
     'airport.checkFlight': 'Save and check',
     'airport.bkkOnly': 'This version supports flights arriving at Suvarnabhumi Airport (BKK) only.',
     'airport.flightStatus': 'Flight status',

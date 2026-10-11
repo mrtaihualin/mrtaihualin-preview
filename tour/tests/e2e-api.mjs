@@ -178,6 +178,24 @@ assert.ok(airport.baggageCollectedAt);
 assert.ok(airport.readyForPickupAt);
 assert.ok(airport.driverArrivedAt);
 
+await rpc('setup_airport_pickup', {
+  p_session_id: customerFirst.sessionId,
+  p_access_token: customerFirst.customer,
+  p_flight_number: 'TG 456',
+  p_flight_date: null
+});
+airport = await rpc('get_airport_pickup', {
+  p_session_id: customerFirst.sessionId,
+  p_access_token: customerFirst.driver
+});
+assert.equal(airport.flightNumber, 'TG456');
+assert.equal(airport.airportCode, null);
+assert.equal(airport.baggageCollectedAt, null);
+assert.equal(airport.readyForPickupAt, null);
+assert.equal(airport.driverEtaMinutes, null);
+assert.equal(airport.driverArrivedAt, null);
+assert.equal(airport.pickupPointLabel, 'ประตู 4');
+
 const appointment = await rpc('create_appointment', {
   p_session_id: customerFirst.sessionId,
   p_access_token: customerFirst.driver,

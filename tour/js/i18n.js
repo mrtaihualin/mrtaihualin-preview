@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=20';
+import { TOUR_CONFIG } from './config.js?v=21';
 
 export const UI = Object.freeze({
   'zh-TW': {
@@ -811,7 +811,8 @@ export function formatDateTime(date, time) {
   try {
     return new Intl.DateTimeFormat(activeLocale, {
       dateStyle: 'medium',
-      timeStyle: 'short'
+      timeStyle: 'short',
+      hourCycle: 'h23'
     }).format(new Date(`${date}T${time}`));
   } catch {
     return `${date} ${time}`;

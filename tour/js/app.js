@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=20';
+import { TOUR_CONFIG } from './config.js?v=21';
 import {
   INTENTS,
   detectIntent,
@@ -9,7 +9,7 @@ import {
   setLocale,
   t,
   translateIntent
-} from './i18n.js?v=20';
+} from './i18n.js?v=21';
 import {
   TourApi,
   TourApiError,
@@ -18,9 +18,9 @@ import {
   inviteUrl,
   loadSession,
   saveSession
-} from './api.js?v=20';
-import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=20';
-import { isPendingHistoryEntry, restoreStoredSessionView } from './session-flow.js?v=20';
+} from './api.js?v=21';
+import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=21';
+import { isPendingHistoryEntry, restoreStoredSessionView } from './session-flow.js?v=21';
 
 const views = [...document.querySelectorAll('.view')];
 const connectionStatus = document.querySelector('#connectionStatus');
@@ -176,7 +176,11 @@ function createMessageElement(message) {
 
   const meta = document.createElement('div');
   meta.className = 'message-meta';
-  meta.textContent = new Intl.DateTimeFormat(getLocale(), { hour: '2-digit', minute: '2-digit' })
+  meta.textContent = new Intl.DateTimeFormat(getLocale(), {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23'
+  })
     .format(new Date(message.createdAt));
   row.append(meta);
   return row;
@@ -273,6 +277,7 @@ function formatAirportTime(value) {
   return new Intl.DateTimeFormat(getLocale(), {
     dateStyle: 'medium',
     timeStyle: 'short',
+    hourCycle: 'h23',
     timeZone: 'Asia/Bangkok'
   }).format(new Date(value));
 }

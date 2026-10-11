@@ -37,10 +37,10 @@ test('PWA is scoped to the standalone tour module', async () => {
   assert(manifest.icons.some((icon) => icon.sizes === '512x512' && icon.purpose.includes('maskable')));
   assert.match(index, /rel="manifest" href="\.\/manifest\.webmanifest"/);
   assert.match(map, /rel="manifest" href="\.\/manifest\.webmanifest"/);
-  assert.match(index, /src="\.\/js\/app\.js\?v=20"/);
-  assert.match(map, /src="\.\/js\/map\.js\?v=20"/);
-  assert.match(app, /from '\.\/config\.js\?v=20'/);
-  assert.match(mapScript, /from '\.\/config\.js\?v=20'/);
+  assert.match(index, /src="\.\/js\/app\.js\?v=21"/);
+  assert.match(map, /src="\.\/js\/map\.js\?v=21"/);
+  assert.match(app, /from '\.\/config\.js\?v=21'/);
+  assert.match(mapScript, /from '\.\/config\.js\?v=21'/);
   assert.match(app, /registerTourServiceWorker/);
   assert.match(mapScript, /registerTourServiceWorker/);
   assert.match(pwa, /navigator\.serviceWorker\.register\('\.\/sw\.js'/);
@@ -329,4 +329,25 @@ test('flight provider runs server-side and refuses unvalidated browser requests'
   assert.match(fn, /TOUR_FLIGHT_PROVIDER_NOT_CONFIGURED/);
   assert.match(fn, /allowedOrigins/);
   assert.match(config, /\[functions\.tour-flight-status\][\s\S]+verify_jwt = false/);
+});
+
+test('Aviationstack BKK wall-clock times are stored as the correct UTC instant', async () => {
+  const { bkkArrivalTimestamp } = await import('../supabase/functions/tour-flight-status/flight-time.ts');
+  assert.equal(
+    bkkArrivalTimestamp('2026-10-11T15:20:00+00:00', 'Asia/Bangkok'),
+    '2026-10-11T08:20:00.000Z'
+  );
+  assert.equal(
+    bkkArrivalTimestamp('2026-10-11T15:20:00+07:00', 'Asia/Bangkok'),
+    '2026-10-11T08:20:00.000Z'
+  );
+  assert.equal(bkkArrivalTimestamp('2026-10-11T15:20:00+00:00', 'Asia/Tokyo'), null);
+  assert.equal(bkkArrivalTimestamp('not-a-time', 'Asia/Bangkok'), null);
+});
+
+test('all displayed times use a 24-hour clock', async () => {
+  const app = await text('js/app.js');
+  const i18n = await text('js/i18n.js');
+  assert.equal((app.match(/hourCycle: 'h23'/g) || []).length, 2);
+  assert.equal((i18n.match(/hourCycle: 'h23'/g) || []).length, 1);
 });

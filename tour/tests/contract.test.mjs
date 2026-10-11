@@ -330,3 +330,17 @@ test('flight provider runs server-side and refuses unvalidated browser requests'
   assert.match(fn, /allowedOrigins/);
   assert.match(config, /\[functions\.tour-flight-status\][\s\S]+verify_jwt = false/);
 });
+
+test('Aviationstack BKK wall-clock times are stored as the correct UTC instant', async () => {
+  const { bkkArrivalTimestamp } = await import('../supabase/functions/tour-flight-status/flight-time.ts');
+  assert.equal(
+    bkkArrivalTimestamp('2026-10-11T15:20:00+00:00', 'Asia/Bangkok'),
+    '2026-10-11T08:20:00.000Z'
+  );
+  assert.equal(
+    bkkArrivalTimestamp('2026-10-11T15:20:00+07:00', 'Asia/Bangkok'),
+    '2026-10-11T08:20:00.000Z'
+  );
+  assert.equal(bkkArrivalTimestamp('2026-10-11T15:20:00+00:00', 'Asia/Tokyo'), null);
+  assert.equal(bkkArrivalTimestamp('not-a-time', 'Asia/Bangkok'), null);
+});

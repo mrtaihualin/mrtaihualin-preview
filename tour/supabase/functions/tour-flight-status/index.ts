@@ -1,4 +1,5 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
+import { bkkArrivalTimestamp } from './flight-time.ts';
 
 const allowedOrigins = new Set([
   'https://mrtaihualin.github.io',
@@ -38,13 +39,6 @@ function firstConfiguredKey(name: string, legacyName: string) {
 
 function compactFlightNumber(value: unknown) {
   return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-}
-
-function utcTimestamp(value: unknown) {
-  if (!value) return null;
-  const normalized = String(value).trim().replace(' ', 'T');
-  const parsed = new Date(/[zZ]|[+-]\d\d:?\d\d$/u.test(normalized) ? normalized : `${normalized}Z`);
-  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
 function normalizeStatus(value: unknown) {
@@ -145,15 +139,16 @@ Deno.serve(async (request: Request) => {
   const departure = flight.departure as Record<string, unknown> | undefined;
   const arrival = flight.arrival as Record<string, unknown> | undefined;
   const flightIdentity = flight.flight as Record<string, unknown> | undefined;
+  const arrivalTimezone = arrival?.timezone;
 
   const normalized = {
     flightNumber: compactFlightNumber(flightIdentity?.iata || flightNumber),
     airportCode: 'BKK',
     originCode: String(departure?.iata || '').toUpperCase() || null,
     destinationCode: 'BKK',
-    scheduledArrival: utcTimestamp(arrival?.scheduled),
-    estimatedArrival: utcTimestamp(arrival?.estimated),
-    actualArrival: utcTimestamp(arrival?.actual),
+    scheduledArrival: bkkArrivalTimestamp(arrival?.scheduled, arrivalTimezone),
+    estimatedArrival: bkkArrivalTimestamp(arrival?.estimated, arrivalTimezone),
+    actualArrival: bkkArrivalTimestamp(arrival?.actual, arrivalTimezone),
     delayMinutes: Number.isFinite(Number(arrival?.delay)) ? Math.max(0, Math.round(Number(arrival?.delay))) : null,
     flightStatus: normalizeStatus(flight.flight_status),
     arrivalTerminal: arrival?.terminal || null,

@@ -16,19 +16,23 @@ Standalone mobile-first module for temporary communication between a foreign tou
 - Session lifetime: expires after seven days without explicit foreground use or a meaningful write
 - Location consent: one request, one acceptance, exactly 20 minutes; a new request is required to extend
 - Map provider: Google Maps when the restricted deployment key is configured; OpenStreetMap/Leaflet remains the automatic no-key/load-failure fallback
+- Airport pickup: the Traveler enters an arriving flight, both sides share the same pickup status, and the Driver can publish an ETA, mark arrival, and change the airport exit-door pickup point
+- Airport scope: the first release accepts only flights arriving at Suvarnabhumi (`BKK`); the provider result determines the airport instead of applying a generic default
+- Flight provider: live status is requested only by a server-side Edge Function. Without its server secret, the pickup workflow remains usable and clearly reports that live flight data is not configured
 
 No code or runtime logic is imported from the existing language-learning website. The only shared infrastructure is the existing staging Supabase project and GitHub Pages preview host.
 
 ## Files
 
-- `index.html` — create, scan, confirm, chat, voice, and appointment UI
+- `index.html` — create, scan, confirm, airport pickup, chat, voice, and appointment UI
 - `map.html` — separate two-party live map
 - `js/api.js` — isolated backend RPC client and session-token recovery
 - `js/i18n.js` — locale keys, status keys, and standard intent translations
-- `js/app.js` — pairing/chat/appointment flow
+- `js/app.js` — pairing, airport pickup, chat, and appointment flow
 - `js/map.js` — consent, GPS updates, stable markers, and routing
 - `js/pwa.js` / `sw.js` / `manifest.webmanifest` — installation and same-origin app-shell caching
 - `supabase/migrations/` — private schema and public token-gated RPC API
+- `supabase/functions/tour-flight-status/` — authenticated server-side flight-provider adapter
 - `tests/` — static contract checks and cross-device backend flow test
 
 ## Backend deployment
@@ -41,6 +45,14 @@ Apply the migration in `supabase/migrations/` only to the staging project. It cr
 - SHA-256 hashes for all join/access tokens; raw access tokens are never stored
 - backend enforcement for seven-day inactivity and 20-minute location sharing
 - location cleanup on every API call plus a five-minute staging cleanup job
+- a private airport-pickup record with role-restricted customer and driver actions
+- a service-role-only flight-status writer so provider data cannot be forged through the public client API
+
+## Flight-status deployment
+
+- Deploy `tour-flight-status` with JWT verification disabled at the platform boundary; the function performs the Tour session-token authorization before any provider request.
+- Store `AIRLABS_API_KEY` as a Supabase Edge Function secret. Never put it in `js/config.js`, GitHub Pages, or any browser bundle.
+- If the secret is absent, the UI shows that live flight data is not configured. Flight entry, baggage/ready status, Driver ETA, arrival status, pickup-door editing, and the live map continue to work.
 
 ## Local preview
 
@@ -74,7 +86,7 @@ node --test tour/tests/contract.test.mjs
 node tour/tests/e2e-api.mjs
 ```
 
-The API test creates disposable sessions, exercises both creator directions, and ends them. Physical two-phone validation remains required for camera, mobile browser TTS, GPS quality, map behavior, and separate-network behavior.
+The API test creates disposable sessions, exercises both creator directions and the complete airport-pickup role flow, then ends them. Physical two-phone validation remains required for camera, mobile browser TTS, GPS quality, map behavior, airport pickup usability, and separate-network behavior.
 
 ## Privacy and security notes
 
@@ -91,5 +103,6 @@ The API test creates disposable sessions, exercises both creator directions, and
 - Message and appointment text is rendered with `textContent`; user text is never inserted as HTML.
 - Only the latest location per role exists. It is deleted when sharing stops, expires, the parties mark “met,” or the session ends.
 - The frontend contains only the Supabase publishable key. No service-role or secret key is shipped.
+- Flight-provider credentials remain inside the Edge Function. The browser supplies only the Tour session id, participant access token, and flight number.
 
 See `KNOWN_LIMITATIONS.md` and `TEST_PLAN.md` before staging handoff.

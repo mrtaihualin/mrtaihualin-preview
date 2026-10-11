@@ -106,6 +106,78 @@ let state = await rpc('get_state', {
 assert.equal(state.messages.at(-1).intentKey, 'arrived');
 assert.equal(state.messages.at(-1).body, '我到了');
 
+await rpcMustFail('setup_airport_pickup', {
+  p_session_id: customerFirst.sessionId,
+  p_access_token: customerFirst.driver,
+  p_flight_number: 'TG123',
+  p_flight_date: null
+}, 'TOUR_AIRPORT_CUSTOMER_ONLY');
+await rpc('setup_airport_pickup', {
+  p_session_id: customerFirst.sessionId,
+  p_access_token: customerFirst.customer,
+  p_flight_number: 'TG 123',
+  p_flight_date: null
+});
+let airport = await rpc('get_airport_pickup', {
+  p_session_id: customerFirst.sessionId,
+  p_access_token: customerFirst.driver
+});
+assert.equal(airport.flightNumber, 'TG123');
+assert.equal(airport.airportCode, null);
+assert.equal(airport.pickupPointCode, 'BKK_EXIT_DOOR_3');
+await rpcMustFail('set_airport_action', {
+  p_session_id: customerFirst.sessionId,
+  p_access_token: customerFirst.driver,
+  p_action: 'AIRPORT_BAGGAGE_COLLECTED'
+}, 'TOUR_AIRPORT_CUSTOMER_ONLY');
+await rpc('set_airport_action', {
+  p_session_id: customerFirst.sessionId,
+  p_access_token: customerFirst.customer,
+  p_action: 'AIRPORT_BAGGAGE_COLLECTED'
+});
+await rpc('set_airport_action', {
+  p_session_id: customerFirst.sessionId,
+  p_access_token: customerFirst.customer,
+  p_action: 'AIRPORT_READY_FOR_PICKUP'
+});
+await rpcMustFail('set_driver_eta', {
+  p_session_id: customerFirst.sessionId,
+  p_access_token: customerFirst.customer,
+  p_minutes: 10
+}, 'TOUR_AIRPORT_DRIVER_ONLY');
+await rpc('set_driver_eta', {
+  p_session_id: customerFirst.sessionId,
+  p_access_token: customerFirst.driver,
+  p_minutes: 10
+});
+await rpcMustFail('update_pickup_point', {
+  p_session_id: customerFirst.sessionId,
+  p_access_token: customerFirst.customer,
+  p_label: 'ประตู 4',
+  p_note: null
+}, 'TOUR_AIRPORT_DRIVER_ONLY');
+await rpc('update_pickup_point', {
+  p_session_id: customerFirst.sessionId,
+  p_access_token: customerFirst.driver,
+  p_label: 'ประตู 4',
+  p_note: 'รอริมถนน'
+});
+await rpc('set_airport_action', {
+  p_session_id: customerFirst.sessionId,
+  p_access_token: customerFirst.driver,
+  p_action: 'DRIVER_ARRIVED_PICKUP'
+});
+airport = await rpc('get_airport_pickup', {
+  p_session_id: customerFirst.sessionId,
+  p_access_token: customerFirst.customer
+});
+assert.equal(airport.driverEtaMinutes, 10);
+assert.equal(airport.pickupPointLabel, 'ประตู 4');
+assert.equal(airport.pickupPointNote, 'รอริมถนน');
+assert.ok(airport.baggageCollectedAt);
+assert.ok(airport.readyForPickupAt);
+assert.ok(airport.driverArrivedAt);
+
 const appointment = await rpc('create_appointment', {
   p_session_id: customerFirst.sessionId,
   p_access_token: customerFirst.driver,

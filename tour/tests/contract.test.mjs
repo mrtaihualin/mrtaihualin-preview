@@ -37,10 +37,10 @@ test('PWA is scoped to the standalone tour module', async () => {
   assert(manifest.icons.some((icon) => icon.sizes === '512x512' && icon.purpose.includes('maskable')));
   assert.match(index, /rel="manifest" href="\.\/manifest\.webmanifest"/);
   assert.match(map, /rel="manifest" href="\.\/manifest\.webmanifest"/);
-  assert.match(index, /src="\.\/js\/app\.js\?v=18"/);
-  assert.match(map, /src="\.\/js\/map\.js\?v=18"/);
-  assert.match(app, /from '\.\/config\.js\?v=18'/);
-  assert.match(mapScript, /from '\.\/config\.js\?v=18'/);
+  assert.match(index, /src="\.\/js\/app\.js\?v=19"/);
+  assert.match(map, /src="\.\/js\/map\.js\?v=19"/);
+  assert.match(app, /from '\.\/config\.js\?v=19'/);
+  assert.match(mapScript, /from '\.\/config\.js\?v=19'/);
   assert.match(app, /registerTourServiceWorker/);
   assert.match(mapScript, /registerTourServiceWorker/);
   assert.match(pwa, /navigator\.serviceWorker\.register\('\.\/sw\.js'/);
@@ -271,4 +271,56 @@ test('pending-session cancellation is atomic and cannot end an already-paired tr
   assert.match(migration, /if v_status <> 'pending'/);
   assert.match(migration, /TOUR_SESSION_ALREADY_PAIRED/);
   assert.match(migration, /grant execute on function public\.tour_v1_cancel_pending_session\(uuid, text\) to anon, authenticated/);
+});
+
+test('airport pickup UI keeps role-specific actions and server-backed state', async () => {
+  const index = await text('index.html');
+  const app = await text('js/app.js');
+  const api = await text('js/api.js');
+  const config = await text('js/config.js');
+
+  assert.match(index, /id="airportSetupForm"/);
+  assert.match(index, /id="baggageCollectedButton"/);
+  assert.match(index, /id="readyForPickupButton"/);
+  assert.match(index, /data-eta-minutes="10"/);
+  assert.match(index, /id="driverArrivedButton"/);
+  assert.match(index, /id="pickupPointForm"/);
+  assert.match(app, /AIRPORT_BAGGAGE_COLLECTED/);
+  assert.match(app, /AIRPORT_READY_FOR_PICKUP/);
+  assert.match(app, /DRIVER_ARRIVED_PICKUP/);
+  assert.match(app, /session\.role !== 'customer'/);
+  assert.match(app, /session\.role !== 'driver'/);
+  assert.match(api, /setupAirportPickup/);
+  assert.match(api, /getAirportPickup/);
+  assert.match(api, /setDriverEta/);
+  assert.match(api, /updatePickupPoint/);
+  assert.match(config, /flightStatusFunction: 'tour-flight-status'/);
+  assert.doesNotMatch(api, /AIRLABS_API_KEY/);
+});
+
+test('airport migration preserves token auth and enforces role-specific mutations', async () => {
+  const migration = await text('supabase/migrations/20261011073142_tour_airport_pickup.sql');
+  assert.match(migration, /create table tour_private\.airport_pickups/);
+  assert.match(migration, /alter table tour_private\.airport_pickups enable row level security/);
+  assert.match(migration, /revoke all on table tour_private\.airport_pickups from public, anon, authenticated/);
+  assert.match(migration, /tour_private\.authorize_participant/);
+  assert.match(migration, /v_role <> 'customer'/);
+  assert.match(migration, /v_role <> 'driver'/);
+  assert.match(migration, /BKK_EXIT_DOOR_3/);
+  assert.match(migration, /p_destination_code <> 'BKK'/);
+  assert.match(migration, /grant execute on function public\.tour_v1_store_flight_status[\s\S]+to service_role/);
+  assert.doesNotMatch(migration, /grant execute on function public\.tour_v1_store_flight_status[\s\S]+to anon/);
+});
+
+test('flight provider runs server-side and refuses unvalidated browser requests', async () => {
+  const fn = await text('supabase/functions/tour-flight-status/index.ts');
+  const config = await text('supabase/config.toml');
+  assert.match(fn, /Deno\.env\.get\('AIRLABS_API_KEY'\)/);
+  assert.match(fn, /tour_v1_get_state/);
+  assert(fn.indexOf('tour_v1_get_state') < fn.indexOf("Deno.env.get('AIRLABS_API_KEY')"));
+  assert.match(fn, /tour_v1_store_flight_status/);
+  assert.match(fn, /flight\.arr_iata[\s\S]+BKK/);
+  assert.match(fn, /TOUR_FLIGHT_PROVIDER_NOT_CONFIGURED/);
+  assert.match(fn, /allowedOrigins/);
+  assert.match(config, /\[functions\.tour-flight-status\][\s\S]+verify_jwt = false/);
 });

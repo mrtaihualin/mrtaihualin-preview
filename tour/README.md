@@ -51,7 +51,7 @@ Apply the migration in `supabase/migrations/` only to the staging project. It cr
 ## Flight-status deployment
 
 - Deploy `tour-flight-status` with JWT verification disabled at the platform boundary; the function performs the Tour session-token authorization before any provider request.
-- Store `AIRLABS_API_KEY` as a Supabase Edge Function secret. Never put it in `js/config.js`, GitHub Pages, or any browser bundle.
+- Store `AVIATIONSTACK_API_KEY` as a Supabase Edge Function secret. Never put it in `js/config.js`, GitHub Pages, or any browser bundle.
 - If the secret is absent, the UI shows that live flight data is not configured. Flight entry, baggage/ready status, Driver ETA, arrival status, pickup-door editing, and the live map continue to work.
 
 ## Local preview

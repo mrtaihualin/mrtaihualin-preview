@@ -6,7 +6,7 @@
 - Browser Text-to-Speech voice quality and Thai voice availability depend on the device. No paid TTS service is used.
 - Polling can take up to about 2.5 seconds to show remote changes.
 - Airport pickup currently supports only flights arriving at Suvarnabhumi (`BKK`). The airport is accepted from the provider result; there is no generic default airport or Chiang Mai airport workflow yet.
-- Live flight status requires the server-side `AIRLABS_API_KEY`. Until it is configured, the UI clearly reports that live data is unavailable while flight entry and every pickup coordination action remain usable.
+- Live flight status requires the server-side `AVIATIONSTACK_API_KEY`. Until it is configured, the UI clearly reports that live data is unavailable while flight entry and every pickup coordination action remain usable.
 - Flight data accuracy, terminal, boarding gate, and arrival estimates depend on the upstream provider. The editable pickup point is the airport exit door for meeting the car, not the flight's boarding gate.
 - MVP has one active session per browser profile and no persistent user identity.
 - The customer label is only a temporary display or group name for the trip; it is not verified and does not need to be a real name.

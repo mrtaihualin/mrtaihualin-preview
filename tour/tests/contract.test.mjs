@@ -300,7 +300,7 @@ test('airport pickup UI keeps role-specific actions and server-backed state', as
   assert.match(api, /setDriverEta/);
   assert.match(api, /updatePickupPoint/);
   assert.match(config, /flightStatusFunction: 'tour-flight-status'/);
-  assert.doesNotMatch(api, /AIRLABS_API_KEY/);
+  assert.doesNotMatch(api, /AVIATIONSTACK_API_KEY/);
 });
 
 test('airport migration preserves token auth and enforces role-specific mutations', async () => {
@@ -320,11 +320,12 @@ test('airport migration preserves token auth and enforces role-specific mutation
 test('flight provider runs server-side and refuses unvalidated browser requests', async () => {
   const fn = await text('supabase/functions/tour-flight-status/index.ts');
   const config = await text('supabase/config.toml');
-  assert.match(fn, /Deno\.env\.get\('AIRLABS_API_KEY'\)/);
+  assert.match(fn, /Deno\.env\.get\('AVIATIONSTACK_API_KEY'\)/);
   assert.match(fn, /tour_v1_get_state/);
-  assert(fn.indexOf('tour_v1_get_state') < fn.indexOf("Deno.env.get('AIRLABS_API_KEY')"));
+  assert(fn.indexOf('tour_v1_get_state') < fn.indexOf("Deno.env.get('AVIATIONSTACK_API_KEY')"));
   assert.match(fn, /tour_v1_store_flight_status/);
-  assert.match(fn, /flight\.arr_iata[\s\S]+BKK/);
+  assert.match(fn, /api\.aviationstack\.com\/v1\/flights/);
+  assert.match(fn, /arrival[\s\S]+BKK/);
   assert.match(fn, /TOUR_FLIGHT_PROVIDER_NOT_CONFIGURED/);
   assert.match(fn, /allowedOrigins/);
   assert.match(config, /\[functions\.tour-flight-status\][\s\S]+verify_jwt = false/);

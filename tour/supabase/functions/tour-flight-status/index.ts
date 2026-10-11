@@ -101,14 +101,15 @@ Deno.serve(async (request: Request) => {
     return json(origin, 403, { ok: false, code: 'TOUR_ACCESS_DENIED' });
   }
 
-  const providerKey = Deno.env.get('AIRLABS_API_KEY');
+  const providerKey = Deno.env.get('AVIATIONSTACK_API_KEY');
   if (!providerKey) {
     return json(origin, 503, { ok: false, code: 'TOUR_FLIGHT_PROVIDER_NOT_CONFIGURED' });
   }
 
-  const providerUrl = new URL('https://airlabs.co/api/v9/flight');
+  const providerUrl = new URL('https://api.aviationstack.com/v1/flights');
   providerUrl.searchParams.set('flight_iata', flightNumber);
-  providerUrl.searchParams.set('api_key', providerKey);
+  providerUrl.searchParams.set('access_key', providerKey);
+  providerUrl.searchParams.set('limit', '20');
 
   let providerResponse: Response;
   try {
@@ -121,28 +122,42 @@ Deno.serve(async (request: Request) => {
     return json(origin, 502, { ok: false, code: 'TOUR_FLIGHT_PROVIDER_UNAVAILABLE' });
   }
 
-  const flight = providerPayload?.response || providerPayload;
-  if (!flight?.flight_iata) return json(origin, 404, { ok: false, code: 'TOUR_FLIGHT_NOT_FOUND' });
-  if (String(flight.arr_iata || '').toUpperCase() !== 'BKK') {
+  const flights = Array.isArray(providerPayload?.data) ? providerPayload.data : [];
+  const matches = flights.filter((item: Record<string, unknown>) => (
+    compactFlightNumber((item.flight as Record<string, unknown> | undefined)?.iata) === flightNumber
+  ));
+  if (!matches.length) return json(origin, 404, { ok: false, code: 'TOUR_FLIGHT_NOT_FOUND' });
+
+  const flight = matches.find((item: Record<string, unknown>) => (
+    String((item.arrival as Record<string, unknown> | undefined)?.iata || '').toUpperCase() === 'BKK'
+  ));
+  if (!flight) {
+    const destinationCode = String(
+      (matches[0].arrival as Record<string, unknown> | undefined)?.iata || ''
+    ).toUpperCase() || null;
     return json(origin, 422, {
       ok: false,
       code: 'TOUR_FLIGHT_DESTINATION_UNSUPPORTED',
-      destinationCode: flight.arr_iata || null
+      destinationCode
     });
   }
 
+  const departure = flight.departure as Record<string, unknown> | undefined;
+  const arrival = flight.arrival as Record<string, unknown> | undefined;
+  const flightIdentity = flight.flight as Record<string, unknown> | undefined;
+
   const normalized = {
-    flightNumber: compactFlightNumber(flight.flight_iata || flightNumber),
+    flightNumber: compactFlightNumber(flightIdentity?.iata || flightNumber),
     airportCode: 'BKK',
-    originCode: String(flight.dep_iata || '').toUpperCase() || null,
+    originCode: String(departure?.iata || '').toUpperCase() || null,
     destinationCode: 'BKK',
-    scheduledArrival: utcTimestamp(flight.arr_time_utc),
-    estimatedArrival: utcTimestamp(flight.arr_estimated_utc),
-    actualArrival: utcTimestamp(flight.arr_actual_utc),
-    delayMinutes: Number.isFinite(Number(flight.arr_delayed)) ? Math.max(0, Math.round(Number(flight.arr_delayed))) : null,
-    flightStatus: normalizeStatus(flight.status),
-    arrivalTerminal: flight.arr_terminal || null,
-    arrivalGate: flight.arr_gate || null
+    scheduledArrival: utcTimestamp(arrival?.scheduled),
+    estimatedArrival: utcTimestamp(arrival?.estimated),
+    actualArrival: utcTimestamp(arrival?.actual),
+    delayMinutes: Number.isFinite(Number(arrival?.delay)) ? Math.max(0, Math.round(Number(arrival?.delay))) : null,
+    flightStatus: normalizeStatus(flight.flight_status),
+    arrivalTerminal: arrival?.terminal || null,
+    arrivalGate: arrival?.gate || null
   };
 
   try {
@@ -160,7 +175,7 @@ Deno.serve(async (request: Request) => {
       p_flight_status: normalized.flightStatus,
       p_arrival_terminal: normalized.arrivalTerminal,
       p_arrival_gate: normalized.arrivalGate,
-      p_provider_name: 'airlabs',
+      p_provider_name: 'aviationstack',
       p_provider_state: 'available'
     });
   } catch {

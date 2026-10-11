@@ -61,7 +61,7 @@ Use Phone A and Phone B on different networks. Use a private/incognito browser p
 
 1. Pair a Traveler and Driver, then verify only the Traveler sees the flight-entry form.
 2. Enter a flight number and verify both phones show the same normalized flight number and pickup panel.
-3. Without `AIRLABS_API_KEY`, verify the UI says live flight data is not configured and does not invent an airport, time, terminal, gate, or status.
+3. Without `AVIATIONSTACK_API_KEY`, verify the UI says live flight data is not configured and does not invent an airport, time, terminal, gate, or status.
 4. With the secret configured, enter a real flight arriving at `BKK`; verify airport, route, scheduled/estimated/actual arrival, delay, terminal, and flight gate appear only when supplied by the provider.
 5. Enter a flight whose destination is not `BKK`; verify it is rejected as unsupported and the app does not relabel it as Suvarnabhumi.
 6. On Traveler, tap **Baggage collected** and verify it is optional. In a separate run, skip it and continue successfully.

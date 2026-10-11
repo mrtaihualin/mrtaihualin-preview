@@ -13,7 +13,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./assets/styles.css?v=19">
+  <link rel="stylesheet" href="./assets/styles.css?v=20">
 </head>
 <body>
   <header class="topbar">
@@ -183,6 +183,7 @@
               <button class="primary" id="airportSetupButton" type="submit" data-i18n="airport.checkFlight">Check flight</button>
             </div>
             <p class="field-hint" data-i18n="airport.bkkOnly">This version supports flights arriving at Suvarnabhumi only.</p>
+            <button class="secondary full hidden" id="airportCancelEditFlightButton" type="button" data-i18n="airport.cancelEditFlight">Cancel</button>
         </form>
 
         <div class="hidden" id="airportSharedState">
@@ -190,6 +191,7 @@
             <div>
               <span data-i18n="airport.flightNumber">Flight number</span>
               <strong id="airportFlightNumberValue"></strong>
+              <button class="airport-edit-flight hidden" id="airportEditFlightButton" type="button" data-i18n="airport.editFlight">Edit flight</button>
             </div>
             <div>
               <span data-i18n="airport.flightStatus">Flight status</span>
@@ -328,6 +330,6 @@
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   </main>
 
-  <script type="module" src="./js/app.js?v=19"></script>
+  <script type="module" src="./js/app.js?v=20"></script>
 </body>
 </html>

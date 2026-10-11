@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=19';
+import { TOUR_CONFIG } from './config.js?v=20';
 
 const JOIN_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,96}$/u;
 

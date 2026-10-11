@@ -649,6 +649,19 @@ dialog::backdrop { background: rgba(4, 20, 19, .53); backdrop-filter: blur(3px);
   font-size: .78rem;
 }
 .airport-flight-summary strong { font-size: 1rem; }
+.airport-edit-flight {
+  min-height: 0;
+  margin-top: 8px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--brand-deep);
+  font-size: .8rem;
+  font-weight: 800;
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
 .airport-provider-note {
   margin: 10px 0;
   padding: 10px 12px;

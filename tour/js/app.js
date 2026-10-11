@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=19';
+import { TOUR_CONFIG } from './config.js?v=20';
 import {
   INTENTS,
   detectIntent,
@@ -9,7 +9,7 @@ import {
   setLocale,
   t,
   translateIntent
-} from './i18n.js?v=19';
+} from './i18n.js?v=20';
 import {
   TourApi,
   TourApiError,
@@ -18,9 +18,9 @@ import {
   inviteUrl,
   loadSession,
   saveSession
-} from './api.js?v=19';
-import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=19';
-import { isPendingHistoryEntry, restoreStoredSessionView } from './session-flow.js?v=19';
+} from './api.js?v=20';
+import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=20';
+import { isPendingHistoryEntry, restoreStoredSessionView } from './session-flow.js?v=20';
 
 const views = [...document.querySelectorAll('.view')];
 const connectionStatus = document.querySelector('#connectionStatus');
@@ -39,6 +39,7 @@ let initialMessagesRendered = false;
 let pendingBackGuard = false;
 let suppressNextPopstate = false;
 let flightLookupMessage = '';
+let editingFlight = false;
 
 function loadPreferredLocale() {
   const locale = localStorage.getItem(TOUR_CONFIG.localeStorageKey);
@@ -316,20 +317,25 @@ function renderAirport(state) {
   );
 
   if (!pickup) {
+    editingFlight = false;
     empty.classList.remove('hidden');
     shared.classList.add('hidden');
     setupForm.classList.toggle('hidden', session.role !== 'customer');
+    document.querySelector('#airportCancelEditFlightButton').classList.add('hidden');
     document.querySelector('#airportCodeBadge').hidden = true;
     return;
   }
 
   empty.classList.add('hidden');
   shared.classList.remove('hidden');
-  setupForm.classList.toggle('hidden', session.role !== 'customer');
+  const canEditFlight = session.role === 'customer';
+  setupForm.classList.toggle('hidden', !canEditFlight || !editingFlight);
+  document.querySelector('#airportEditFlightButton').classList.toggle('hidden', !canEditFlight || editingFlight);
+  document.querySelector('#airportCancelEditFlightButton').classList.toggle('hidden', !editingFlight);
   document.querySelector('#airportCodeBadge').hidden = pickup.airportCode !== 'BKK';
   document.querySelector('#airportFlightNumberValue').textContent = pickup.flightNumber;
   document.querySelector('#airportFlightStatusValue').textContent = airportStatusLabel(pickup.flightStatus);
-  document.querySelector('#airportFlightNumber').value = pickup.flightNumber;
+  if (!editingFlight) document.querySelector('#airportFlightNumber').value = pickup.flightNumber;
 
   const providerNote = document.querySelector('#airportProviderNote');
   if (flightLookupMessage) {
@@ -688,9 +694,25 @@ async function setupAirportPickup(event) {
   const button = document.querySelector('#airportSetupButton');
   const flightNumber = document.querySelector('#airportFlightNumber').value.trim();
   if (!flightNumber || !session) return;
+  const normalizedFlightNumber = flightNumber.toUpperCase().replace(/[^A-Z0-9]/gu, '');
+  const currentPickup = currentState?.airportPickup;
+  if (currentPickup?.flightNumber === normalizedFlightNumber) {
+    editingFlight = false;
+    renderAirport(currentState);
+    return;
+  }
+  const pickupHasProgress = currentPickup && [
+    currentPickup.baggageCollectedAt,
+    currentPickup.readyForPickupAt,
+    currentPickup.driverEtaMinutes,
+    currentPickup.driverEnRouteAt,
+    currentPickup.driverArrivedAt
+  ].some(Boolean);
+  if (pickupHasProgress && !window.confirm(t('airport.changeFlightConfirm'))) return;
   setBusy(button, true);
   try {
     await TourApi.setupAirportPickup(session.sessionId, session.accessToken, flightNumber);
+    editingFlight = false;
     flightLookupMessage = '';
     notify(t('airport.flightSaved'));
     await pollState({ quiet: true });
@@ -700,6 +722,22 @@ async function setupAirportPickup(event) {
   } finally {
     setBusy(button, false);
   }
+}
+
+function editAirportFlight() {
+  const pickup = currentState?.airportPickup;
+  if (!pickup || session?.role !== 'customer') return;
+  document.querySelector('#airportFlightNumber').value = pickup.flightNumber;
+  editingFlight = true;
+  renderAirport(currentState);
+  const input = document.querySelector('#airportFlightNumber');
+  input.focus();
+  input.select();
+}
+
+function cancelAirportFlightEdit() {
+  editingFlight = false;
+  if (currentState) renderAirport(currentState);
 }
 
 async function setAirportAction(action, button) {
@@ -939,6 +977,8 @@ function wireEvents() {
   document.querySelector('#appointmentForm').addEventListener('submit', saveAppointment);
   document.querySelector('#confirmAppointmentButton').addEventListener('click', confirmAppointment);
   document.querySelector('#airportSetupForm').addEventListener('submit', setupAirportPickup);
+  document.querySelector('#airportEditFlightButton').addEventListener('click', editAirportFlight);
+  document.querySelector('#airportCancelEditFlightButton').addEventListener('click', cancelAirportFlightEdit);
   document.querySelector('#refreshFlightButton').addEventListener('click', refreshFlightStatus);
   document.querySelector('#baggageCollectedButton').addEventListener('click', (event) => {
     setAirportAction('AIRPORT_BAGGAGE_COLLECTED', event.currentTarget);

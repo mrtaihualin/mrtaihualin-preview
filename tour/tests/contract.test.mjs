@@ -37,10 +37,10 @@ test('PWA is scoped to the standalone tour module', async () => {
   assert(manifest.icons.some((icon) => icon.sizes === '512x512' && icon.purpose.includes('maskable')));
   assert.match(index, /rel="manifest" href="\.\/manifest\.webmanifest"/);
   assert.match(map, /rel="manifest" href="\.\/manifest\.webmanifest"/);
-  assert.match(index, /src="\.\/js\/app\.js\?v=19"/);
-  assert.match(map, /src="\.\/js\/map\.js\?v=19"/);
-  assert.match(app, /from '\.\/config\.js\?v=19'/);
-  assert.match(mapScript, /from '\.\/config\.js\?v=19'/);
+  assert.match(index, /src="\.\/js\/app\.js\?v=20"/);
+  assert.match(map, /src="\.\/js\/map\.js\?v=20"/);
+  assert.match(app, /from '\.\/config\.js\?v=20'/);
+  assert.match(mapScript, /from '\.\/config\.js\?v=20'/);
   assert.match(app, /registerTourServiceWorker/);
   assert.match(mapScript, /registerTourServiceWorker/);
   assert.match(pwa, /navigator\.serviceWorker\.register\('\.\/sw\.js'/);
@@ -280,6 +280,8 @@ test('airport pickup UI keeps role-specific actions and server-backed state', as
   const config = await text('js/config.js');
 
   assert.match(index, /id="airportSetupForm"/);
+  assert.match(index, /id="airportEditFlightButton"/);
+  assert.match(index, /id="airportCancelEditFlightButton"/);
   assert.match(index, /id="baggageCollectedButton"/);
   assert.match(index, /id="readyForPickupButton"/);
   assert.match(index, /data-eta-minutes="10"/);
@@ -288,6 +290,9 @@ test('airport pickup UI keeps role-specific actions and server-backed state', as
   assert.match(app, /AIRPORT_BAGGAGE_COLLECTED/);
   assert.match(app, /AIRPORT_READY_FOR_PICKUP/);
   assert.match(app, /DRIVER_ARRIVED_PICKUP/);
+  assert.match(app, /function editAirportFlight/);
+  assert.match(app, /airport\.changeFlightConfirm/);
+  assert.match(app, /if \(!editingFlight\).*airportFlightNumber/);
   assert.match(app, /session\.role !== 'customer'/);
   assert.match(app, /session\.role !== 'driver'/);
   assert.match(api, /setupAirportPickup/);

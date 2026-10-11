@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=18';
+import { TOUR_CONFIG } from './config.js?v=19';
 
 const JOIN_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,96}$/u;
 
@@ -31,6 +31,24 @@ async function rpc(name, body = {}) {
   }
   if (payload?.ok === false) {
     throw new TourApiError(payload.message || payload.error || 'Request failed', payload.code || 'TOUR_API_ERROR', response.status);
+  }
+  return payload;
+}
+
+async function invokeFunction(name, body = {}) {
+  const response = await fetch(`${TOUR_CONFIG.supabaseUrl}/functions/v1/${name}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(body),
+    cache: 'no-store'
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || payload?.ok === false) {
+    throw new TourApiError(
+      payload?.message || payload?.code || `HTTP ${response.status}`,
+      payload?.code || 'TOUR_FLIGHT_API_ERROR',
+      response.status
+    );
   }
   return payload;
 }
@@ -79,6 +97,42 @@ export const TourApi = Object.freeze({
       p_access_token: accessToken,
       p_appointment_id: appointmentId
     });
+  },
+  setupAirportPickup(sessionId, accessToken, flightNumber, flightDate = null) {
+    return rpc('setup_airport_pickup', {
+      p_session_id: sessionId,
+      p_access_token: accessToken,
+      p_flight_number: flightNumber,
+      p_flight_date: flightDate
+    });
+  },
+  getAirportPickup(sessionId, accessToken) {
+    return rpc('get_airport_pickup', { p_session_id: sessionId, p_access_token: accessToken });
+  },
+  setAirportAction(sessionId, accessToken, action) {
+    return rpc('set_airport_action', {
+      p_session_id: sessionId,
+      p_access_token: accessToken,
+      p_action: action
+    });
+  },
+  setDriverEta(sessionId, accessToken, minutes) {
+    return rpc('set_driver_eta', {
+      p_session_id: sessionId,
+      p_access_token: accessToken,
+      p_minutes: minutes
+    });
+  },
+  updatePickupPoint(sessionId, accessToken, label, note = null) {
+    return rpc('update_pickup_point', {
+      p_session_id: sessionId,
+      p_access_token: accessToken,
+      p_label: label,
+      p_note: note
+    });
+  },
+  lookupFlightStatus(sessionId, accessToken, flightNumber) {
+    return invokeFunction(TOUR_CONFIG.flightStatusFunction, { sessionId, accessToken, flightNumber });
   },
   requestLocation(sessionId, accessToken) {
     return rpc('request_location', { p_session_id: sessionId, p_access_token: accessToken });

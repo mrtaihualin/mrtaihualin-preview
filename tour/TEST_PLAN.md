@@ -57,6 +57,22 @@ Use Phone A and Phone B on different networks. Use a private/incognito browser p
 3. Verify only the other side can confirm.
 4. Verify both sides show Confirmed.
 
+## Suvarnabhumi airport pickup
+
+1. Pair a Traveler and Driver, then verify only the Traveler sees the flight-entry form.
+2. Enter a flight number and verify both phones show the same normalized flight number and pickup panel.
+3. Without `AIRLABS_API_KEY`, verify the UI says live flight data is not configured and does not invent an airport, time, terminal, gate, or status.
+4. With the secret configured, enter a real flight arriving at `BKK`; verify airport, route, scheduled/estimated/actual arrival, delay, terminal, and flight gate appear only when supplied by the provider.
+5. Enter a flight whose destination is not `BKK`; verify it is rejected as unsupported and the app does not relabel it as Suvarnabhumi.
+6. On Traveler, tap **Baggage collected** and verify it is optional. In a separate run, skip it and continue successfully.
+7. Verify the Driver ETA controls are unavailable until Traveler taps **At the pickup exit**.
+8. Tap **At the pickup exit** and verify both phones instruct the Traveler to be ready by the roadside at the pickup point.
+9. On Driver, choose 10 minutes and verify both phones show the approximate 10-minute ETA.
+10. Change the pickup point from Exit Door 3 to another exit door, add an optional note, and verify both phones update.
+11. On Driver, tap **Arrived — waiting** and verify both phones show that the Driver has arrived and is waiting.
+12. Repeat the workflow while the tester is physically in Chiang Mai; verify the workflow still operates because the tester's current GPS location does not select the airport.
+13. Verify the separate live-map link still opens and does not silently grant location permission.
+
 ## Location
 
 1. With `GOOGLE_MAPS_API_KEY` configured, inspect the map page and verify `document.documentElement.dataset.mapProvider` is `google`; temporarily remove the deployment key in an isolated preview and verify it becomes `leaflet` without breaking the trip flow.

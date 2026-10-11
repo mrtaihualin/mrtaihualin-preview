@@ -1,4 +1,4 @@
-import { TOUR_CONFIG } from './config.js?v=18';
+import { TOUR_CONFIG } from './config.js?v=19';
 import {
   INTENTS,
   detectIntent,
@@ -9,7 +9,7 @@ import {
   setLocale,
   t,
   translateIntent
-} from './i18n.js?v=18';
+} from './i18n.js?v=19';
 import {
   TourApi,
   TourApiError,
@@ -18,9 +18,9 @@ import {
   inviteUrl,
   loadSession,
   saveSession
-} from './api.js?v=18';
-import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=18';
-import { isPendingHistoryEntry, restoreStoredSessionView } from './session-flow.js?v=18';
+} from './api.js?v=19';
+import { initInstallExperience, registerTourServiceWorker } from './pwa.js?v=19';
+import { isPendingHistoryEntry, restoreStoredSessionView } from './session-flow.js?v=19';
 
 const views = [...document.querySelectorAll('.view')];
 const connectionStatus = document.querySelector('#connectionStatus');
@@ -38,6 +38,7 @@ let lastSeenMessageId = null;
 let initialMessagesRendered = false;
 let pendingBackGuard = false;
 let suppressNextPopstate = false;
+let flightLookupMessage = '';
 
 function loadPreferredLocale() {
   const locale = localStorage.getItem(TOUR_CONFIG.localeStorageKey);
@@ -95,6 +96,9 @@ async function pollState({ touch = false, quiet = false } = {}) {
   if (!session) return null;
   try {
     const state = await TourApi.getState(session.sessionId, session.accessToken, touch);
+    if (state.session.status === 'paired') {
+      state.airportPickup = await TourApi.getAirportPickup(session.sessionId, session.accessToken);
+    }
     currentState = state;
     setConnection('online', 'status.online');
     if (state.session.status === 'paired') {
@@ -263,6 +267,131 @@ function renderLocation(state) {
   }
 }
 
+function formatAirportTime(value) {
+  if (!value) return '';
+  return new Intl.DateTimeFormat(getLocale(), {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Bangkok'
+  }).format(new Date(value));
+}
+
+function airportStatusLabel(status) {
+  const key = {
+    scheduled: 'airport.statusScheduled',
+    active: 'airport.statusActive',
+    en_route: 'airport.statusEnRoute',
+    landed: 'airport.statusLanded',
+    cancelled: 'airport.statusCancelled',
+    diverted: 'airport.statusDiverted'
+  }[status] || 'airport.statusUnknown';
+  return t(key);
+}
+
+function pickupPointLabel(pickup) {
+  if (pickup.pickupPointCode === 'BKK_EXIT_DOOR_3') return t('airport.door3');
+  return pickup.pickupPointLabel || t('airport.door3');
+}
+
+function setAirportDetail(rowId, valueId, value) {
+  const row = document.querySelector(`#${rowId}`);
+  row.hidden = !value;
+  document.querySelector(`#${valueId}`).textContent = value || '';
+}
+
+function appendAirportProgress(key, className = '') {
+  const item = document.createElement('div');
+  item.className = `airport-progress-item${className ? ` ${className}` : ''}`;
+  item.textContent = t(key);
+  document.querySelector('#airportProgress').append(item);
+}
+
+function renderAirport(state) {
+  const pickup = state.airportPickup;
+  const empty = document.querySelector('#airportEmptyState');
+  const shared = document.querySelector('#airportSharedState');
+  const setupForm = document.querySelector('#airportSetupForm');
+  document.querySelector('#airportEmptyCopy').textContent = t(
+    session.role === 'customer' ? 'airport.emptyCustomer' : 'airport.emptyDriver'
+  );
+
+  if (!pickup) {
+    empty.classList.remove('hidden');
+    shared.classList.add('hidden');
+    setupForm.classList.toggle('hidden', session.role !== 'customer');
+    document.querySelector('#airportCodeBadge').hidden = true;
+    return;
+  }
+
+  empty.classList.add('hidden');
+  shared.classList.remove('hidden');
+  setupForm.classList.toggle('hidden', session.role !== 'customer');
+  document.querySelector('#airportCodeBadge').hidden = pickup.airportCode !== 'BKK';
+  document.querySelector('#airportFlightNumberValue').textContent = pickup.flightNumber;
+  document.querySelector('#airportFlightStatusValue').textContent = airportStatusLabel(pickup.flightStatus);
+  document.querySelector('#airportFlightNumber').value = pickup.flightNumber;
+
+  const providerNote = document.querySelector('#airportProviderNote');
+  if (flightLookupMessage) {
+    providerNote.textContent = flightLookupMessage;
+  } else if (pickup.providerState === 'available') {
+    providerNote.textContent = t('airport.providerAvailable');
+  } else {
+    providerNote.textContent = t('airport.providerNotConfigured');
+  }
+
+  setAirportDetail(
+    'airportRouteRow',
+    'airportRouteValue',
+    pickup.originCode && pickup.destinationCode ? `${pickup.originCode} → ${pickup.destinationCode}` : ''
+  );
+  setAirportDetail('airportScheduledRow', 'airportScheduledValue', formatAirportTime(pickup.scheduledArrival));
+  setAirportDetail('airportEstimatedRow', 'airportEstimatedValue', formatAirportTime(pickup.estimatedArrival));
+  setAirportDetail('airportActualRow', 'airportActualValue', formatAirportTime(pickup.actualArrival));
+  setAirportDetail(
+    'airportDelayRow',
+    'airportDelayValue',
+    Number.isInteger(pickup.delayMinutes) ? t('airport.delayMinutes', { minutes: pickup.delayMinutes }) : ''
+  );
+  setAirportDetail('airportTerminalRow', 'airportTerminalValue', pickup.arrivalTerminal || '');
+  setAirportDetail('airportGateRow', 'airportGateValue', pickup.arrivalGate || '');
+
+  const pointLabel = pickupPointLabel(pickup);
+  document.querySelector('#pickupPointValue').textContent = pointLabel;
+  document.querySelector('#pickupPointNoteValue').textContent = pickup.pickupPointNote || '';
+  const pointInput = document.querySelector('#pickupPointInput');
+  const pointNote = document.querySelector('#pickupPointNote');
+  if (document.activeElement !== pointInput) pointInput.value = pointLabel;
+  if (document.activeElement !== pointNote) pointNote.value = pickup.pickupPointNote || '';
+
+  const progress = document.querySelector('#airportProgress');
+  progress.replaceChildren();
+  appendAirportProgress(pickup.baggageCollectedAt ? 'airport.customerBaggageDone' : 'airport.waitingBaggage');
+  appendAirportProgress(
+    pickup.readyForPickupAt ? 'airport.customerReady' : 'airport.waitingReady',
+    pickup.readyForPickupAt ? 'important' : ''
+  );
+  if (pickup.driverEtaMinutes) {
+    const item = document.createElement('div');
+    item.className = 'airport-progress-item important';
+    item.textContent = t('airport.driverEta', { minutes: pickup.driverEtaMinutes });
+    progress.append(item);
+  } else if (pickup.driverEnRouteAt) {
+    appendAirportProgress('airport.driverEnRoute', 'important');
+  }
+  if (pickup.driverArrivedAt) appendAirportProgress('airport.driverArrivedStatus', 'success');
+  if (pickup.readyForPickupAt) appendAirportProgress('airport.roadsideWait');
+
+  const customerActions = document.querySelector('#customerAirportActions');
+  const driverActions = document.querySelector('#driverAirportActions');
+  customerActions.classList.toggle('hidden', session.role !== 'customer');
+  driverActions.classList.toggle('hidden', session.role !== 'driver');
+  document.querySelector('#baggageCollectedButton').disabled = Boolean(pickup.baggageCollectedAt);
+  document.querySelector('#readyForPickupButton').disabled = Boolean(pickup.readyForPickupAt);
+  document.querySelector('#driverEtaPanel').classList.toggle('hidden', !pickup.readyForPickupAt);
+  document.querySelector('#driverArrivedButton').disabled = Boolean(pickup.driverArrivedAt);
+}
+
 function renderTrip(state) {
   if (document.querySelector('#tripView').classList.contains('hidden')) showView('tripView');
   document.querySelector('#tripCustomerName').textContent = state.session.tripDisplayName || '—';
@@ -274,6 +403,7 @@ function renderTrip(state) {
   renderIntentChips();
   renderAppointment(state);
   renderLocation(state);
+  renderAirport(state);
 }
 
 function renderAppointmentDetail(appointment) {
@@ -527,6 +657,98 @@ async function confirmAppointment() {
   }
 }
 
+function flightLookupErrorMessage(error) {
+  if (error.code === 'TOUR_FLIGHT_PROVIDER_NOT_CONFIGURED') return t('airport.providerNotConfigured');
+  if (error.code === 'TOUR_FLIGHT_NOT_FOUND') return t('airport.flightNotFound');
+  if (error.code === 'TOUR_FLIGHT_DESTINATION_UNSUPPORTED') return t('airport.unsupportedDestination');
+  return t('airport.providerUnavailable');
+}
+
+async function refreshFlightStatus() {
+  const pickup = currentState?.airportPickup;
+  if (!pickup || !session) return;
+  const button = document.querySelector('#refreshFlightButton');
+  setBusy(button, true);
+  flightLookupMessage = t('airport.providerChecking');
+  renderAirport(currentState);
+  try {
+    await TourApi.lookupFlightStatus(session.sessionId, session.accessToken, pickup.flightNumber);
+    flightLookupMessage = '';
+    await pollState({ quiet: true });
+  } catch (error) {
+    flightLookupMessage = flightLookupErrorMessage(error);
+    renderAirport(currentState);
+  } finally {
+    setBusy(button, false);
+  }
+}
+
+async function setupAirportPickup(event) {
+  event.preventDefault();
+  const button = document.querySelector('#airportSetupButton');
+  const flightNumber = document.querySelector('#airportFlightNumber').value.trim();
+  if (!flightNumber || !session) return;
+  setBusy(button, true);
+  try {
+    await TourApi.setupAirportPickup(session.sessionId, session.accessToken, flightNumber);
+    flightLookupMessage = '';
+    notify(t('airport.flightSaved'));
+    await pollState({ quiet: true });
+    await refreshFlightStatus();
+  } catch (error) {
+    notify(humanError(error));
+  } finally {
+    setBusy(button, false);
+  }
+}
+
+async function setAirportAction(action, button) {
+  if (!session) return;
+  setBusy(button, true);
+  try {
+    await TourApi.setAirportAction(session.sessionId, session.accessToken, action);
+    notify(t('airport.actionSaved'));
+    await pollState({ quiet: true });
+  } catch (error) {
+    notify(humanError(error));
+  } finally {
+    setBusy(button, false);
+  }
+}
+
+async function publishDriverEta(minutes, button) {
+  if (!session || !Number.isInteger(minutes) || minutes < 1 || minutes > 180) return;
+  setBusy(button, true);
+  try {
+    await TourApi.setDriverEta(session.sessionId, session.accessToken, minutes);
+    notify(t('airport.etaSaved'));
+    await pollState({ quiet: true });
+  } catch (error) {
+    notify(humanError(error));
+  } finally {
+    setBusy(button, false);
+  }
+}
+
+async function updatePickupPoint(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const label = document.querySelector('#pickupPointInput').value.trim();
+  const note = document.querySelector('#pickupPointNote').value.trim();
+  if (!label || !session) return;
+  setBusy(button, true);
+  try {
+    await TourApi.updatePickupPoint(session.sessionId, session.accessToken, label, note);
+    notify(t('airport.pickupSaved'));
+    await pollState({ quiet: true });
+  } catch (error) {
+    notify(humanError(error));
+  } finally {
+    setBusy(button, false);
+  }
+}
+
 async function endSession() {
   if (!window.confirm(t('trip.endConfirm'))) return;
   const button = document.querySelector('#endSessionButton');
@@ -716,6 +938,26 @@ function wireEvents() {
   document.querySelector('#appointmentSummary').addEventListener('click', showAppointmentDialog);
   document.querySelector('#appointmentForm').addEventListener('submit', saveAppointment);
   document.querySelector('#confirmAppointmentButton').addEventListener('click', confirmAppointment);
+  document.querySelector('#airportSetupForm').addEventListener('submit', setupAirportPickup);
+  document.querySelector('#refreshFlightButton').addEventListener('click', refreshFlightStatus);
+  document.querySelector('#baggageCollectedButton').addEventListener('click', (event) => {
+    setAirportAction('AIRPORT_BAGGAGE_COLLECTED', event.currentTarget);
+  });
+  document.querySelector('#readyForPickupButton').addEventListener('click', (event) => {
+    setAirportAction('AIRPORT_READY_FOR_PICKUP', event.currentTarget);
+  });
+  document.querySelectorAll('[data-eta-minutes]').forEach((button) => {
+    button.addEventListener('click', () => publishDriverEta(Number(button.dataset.etaMinutes), button));
+  });
+  document.querySelector('#customEtaForm').addEventListener('submit', (event) => {
+    event.preventDefault();
+    const minutes = Number(document.querySelector('#customEtaMinutes').value);
+    publishDriverEta(minutes, event.currentTarget.querySelector('button[type="submit"]'));
+  });
+  document.querySelector('#driverArrivedButton').addEventListener('click', (event) => {
+    setAirportAction('DRIVER_ARRIVED_PICKUP', event.currentTarget);
+  });
+  document.querySelector('#pickupPointForm').addEventListener('submit', updatePickupPoint);
   document.querySelectorAll('[data-close-dialog]').forEach((button) => {
     button.addEventListener('click', () => document.querySelector(`#${button.dataset.closeDialog}`).close());
   });

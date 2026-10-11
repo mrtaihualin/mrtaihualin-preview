@@ -13,7 +13,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./assets/styles.css?v=18">
+  <link rel="stylesheet" href="./assets/styles.css?v=19">
 </head>
 <body>
   <header class="topbar">
@@ -164,6 +164,94 @@
         </div>
       </div>
 
+      <section class="airport-card" aria-labelledby="airportHeading">
+        <div class="section-heading airport-heading">
+          <div>
+            <p class="eyebrow" data-i18n="airport.eyebrow">Airport pickup</p>
+            <h2 id="airportHeading" data-i18n="airport.title">Flight and pickup</h2>
+          </div>
+          <span class="airport-code-badge" id="airportCodeBadge" hidden>BKK</span>
+        </div>
+
+        <div id="airportEmptyState">
+          <p class="muted" id="airportEmptyCopy"></p>
+        </div>
+        <form class="airport-flight-form hidden" id="airportSetupForm">
+            <label for="airportFlightNumber" data-i18n="airport.flightNumber">Flight number</label>
+            <div class="inline-form">
+              <input id="airportFlightNumber" type="text" inputmode="text" autocomplete="off" maxlength="12" placeholder="TG123" required>
+              <button class="primary" id="airportSetupButton" type="submit" data-i18n="airport.checkFlight">Check flight</button>
+            </div>
+            <p class="field-hint" data-i18n="airport.bkkOnly">This version supports flights arriving at Suvarnabhumi only.</p>
+        </form>
+
+        <div class="hidden" id="airportSharedState">
+          <div class="airport-flight-summary">
+            <div>
+              <span data-i18n="airport.flightNumber">Flight number</span>
+              <strong id="airportFlightNumberValue"></strong>
+            </div>
+            <div>
+              <span data-i18n="airport.flightStatus">Flight status</span>
+              <strong id="airportFlightStatusValue"></strong>
+            </div>
+          </div>
+          <div class="airport-provider-note" id="airportProviderNote" role="status"></div>
+          <button class="secondary full" id="refreshFlightButton" type="button" data-i18n="airport.refreshFlight">Refresh flight status</button>
+
+          <dl class="airport-detail-grid">
+            <div id="airportRouteRow"><dt data-i18n="airport.route">Route</dt><dd id="airportRouteValue"></dd></div>
+            <div id="airportScheduledRow"><dt data-i18n="airport.scheduledArrival">Scheduled arrival</dt><dd id="airportScheduledValue"></dd></div>
+            <div id="airportEstimatedRow"><dt data-i18n="airport.estimatedArrival">Estimated arrival</dt><dd id="airportEstimatedValue"></dd></div>
+            <div id="airportActualRow"><dt data-i18n="airport.actualArrival">Actual arrival</dt><dd id="airportActualValue"></dd></div>
+            <div id="airportDelayRow"><dt data-i18n="airport.delay">Delay</dt><dd id="airportDelayValue"></dd></div>
+            <div id="airportTerminalRow"><dt data-i18n="airport.terminal">Terminal</dt><dd id="airportTerminalValue"></dd></div>
+            <div id="airportGateRow"><dt data-i18n="airport.flightGate">Flight gate</dt><dd id="airportGateValue"></dd></div>
+          </dl>
+
+          <div class="pickup-point-box">
+            <span data-i18n="airport.pickupPoint">Pickup point</span>
+            <strong id="pickupPointValue"></strong>
+            <small id="pickupPointNoteValue"></small>
+          </div>
+
+          <div class="airport-progress" id="airportProgress" aria-live="polite"></div>
+
+          <div class="airport-actions hidden" id="customerAirportActions">
+            <button class="secondary full" id="baggageCollectedButton" type="button" data-i18n="airport.baggageCollected">Baggage collected</button>
+            <button class="primary full" id="readyForPickupButton" type="button" data-i18n="airport.readyForPickup">I am at the pickup exit</button>
+          </div>
+
+          <div class="airport-actions hidden" id="driverAirportActions">
+            <div class="hidden" id="driverEtaPanel">
+              <p class="airport-action-title" data-i18n="airport.driverEtaPrompt">How many minutes until pickup?</p>
+              <div class="eta-presets" aria-label="Driver ETA" data-i18n-aria-label="airport.driverEtaPrompt">
+                <button type="button" data-eta-minutes="5">5</button>
+                <button type="button" data-eta-minutes="10">10</button>
+                <button type="button" data-eta-minutes="15">15</button>
+                <button type="button" data-eta-minutes="20">20</button>
+              </div>
+              <form class="inline-form" id="customEtaForm">
+                <label class="sr-only" for="customEtaMinutes" data-i18n="airport.customEta">Custom minutes</label>
+                <input id="customEtaMinutes" type="number" min="1" max="180" inputmode="numeric" data-i18n-placeholder="airport.customEta">
+                <button class="secondary" type="submit" data-i18n="airport.sendEta">Send ETA</button>
+              </form>
+              <button class="primary full" id="driverArrivedButton" type="button" data-i18n="airport.driverArrived">Arrived and waiting</button>
+            </div>
+
+            <form id="pickupPointForm">
+              <label for="pickupPointInput" data-i18n="airport.editPickupPoint">Change pickup exit</label>
+              <input id="pickupPointInput" maxlength="120" required>
+              <label for="pickupPointNote" data-i18n="airport.pickupNote">Note (optional)</label>
+              <textarea id="pickupPointNote" rows="2" maxlength="280"></textarea>
+              <button class="secondary full" type="submit" data-i18n="airport.savePickupPoint">Save pickup point</button>
+            </form>
+          </div>
+
+          <a class="secondary full airport-map-link" href="./map.html" data-i18n="airport.openMap">Open live map</a>
+        </div>
+      </section>
+
       <div class="trip-actions" id="tripMenu" hidden>
         <button class="secondary full" id="copyInviteButton" type="button" data-i18n="trip.copyInvite">複製旅程連結</button>
         <button class="danger full" id="endSessionButton" type="button" data-i18n="trip.end">結束旅程</button>
@@ -240,6 +328,6 @@
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   </main>
 
-  <script type="module" src="./js/app.js?v=18"></script>
+  <script type="module" src="./js/app.js?v=19"></script>
 </body>
 </html>
